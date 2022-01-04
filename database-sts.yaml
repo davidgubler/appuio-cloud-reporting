@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: invoicing-db-headless
+spec:
+  selector:
+    app: invoicing-db
+  clusterIP: None
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: invoicing-db
+spec:
+  selector:
+    app: invoicing-db
+  ports:
+  - port: 5432
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: invoicing-db
+  labels:
+    app: invoicing-db
+spec:
+  selector:
+    matchLabels:
+      app: invoicing-db
+  serviceName: invoicing-db-headless
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: invoicing-db
+    spec:
+      containers:
+      - name: postgresql
+        image: docker.io/library/postgres:14.1-bullseye
+        env:
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: invoicing-db-superuser
+              key: password
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: invoicing-db-superuser
+              key: user
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: data
+          subPath: data
+          mountPath: /var/lib/postgresql/data
+        resources:
+          requests:
+            cpu: 500m
+            memory: 256Mi
+          limits:
+            cpu: 1500m
+            memory: 1Gi
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 5Gi
