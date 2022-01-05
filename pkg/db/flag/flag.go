@@ -16,5 +16,5 @@ func urlFromEnv() string {
 	if url, exists := os.LookupEnv("DB_URL"); exists {
 		return url
 	}
-	return "postgres://postgres@localhost/invoicing-db?sslmode=disable"
+	return "postgres://postgres@localhost/reporting-db?sslmode=disable"
 }

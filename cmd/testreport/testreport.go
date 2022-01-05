@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/appuio/appuio-public-reporting/cmd/migrate/migrate"
+	"github.com/appuio/appuio-public-reporting/cmd/testreport/testreport"
 )
 
 func main() {
-	err := migrate.Main()
+	err := testreport.Main()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
