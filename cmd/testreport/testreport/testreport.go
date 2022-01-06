@@ -17,6 +17,7 @@ func Main() error {
 	if err != nil {
 		return fmt.Errorf("could not open database connection: %w", err)
 	}
+	defer db.Close()
 
 	debugCategory := types.Category{
 		Source: "debug_category",
@@ -27,10 +28,13 @@ func Main() error {
 	if err != nil {
 		return fmt.Errorf("error starting transaction: %w", err)
 	}
+	defer tx.Rollback()
+
 	stmt, err := tx.PrepareNamed("INSERT INTO categories (source, target) VALUES (:source, :target) RETURNING id")
 	if err != nil {
 		return fmt.Errorf("error preparing statement: %w", err)
 	}
+	defer stmt.Close()
 
 	var id string
 	err = stmt.Get(&id, debugCategory)
@@ -45,8 +49,6 @@ func Main() error {
 		return fmt.Errorf("error retrieving category: %w", err)
 	}
 	fmt.Println("Category", retreivedCategory)
-
-	tx.Rollback()
 
 	return nil
 }
