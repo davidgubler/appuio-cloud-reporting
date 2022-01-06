@@ -4,9 +4,9 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/appuio/appuio-public-reporting/pkg/db"
-	dbflag "github.com/appuio/appuio-public-reporting/pkg/db/flag"
-	"github.com/appuio/appuio-public-reporting/pkg/db/migrations"
+	"github.com/appuio/appuio-cloud-reporting/pkg/db"
+	dbflag "github.com/appuio/appuio-cloud-reporting/pkg/db/flag"
+	"github.com/appuio/appuio-cloud-reporting/pkg/db/migrations"
 )
 
 func Main() error {

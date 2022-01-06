@@ -1,4 +1,4 @@
-module github.com/appuio/appuio-public-reporting
+module github.com/appuio/appuio-cloud-reporting
 
 go 1.17
 

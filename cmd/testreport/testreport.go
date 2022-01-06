@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/appuio/appuio-public-reporting/cmd/testreport/testreport"
+	"github.com/appuio/appuio-cloud-reporting/cmd/testreport/testreport"
 )
 
 func main() {

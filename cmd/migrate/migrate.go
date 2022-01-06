@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/appuio/appuio-public-reporting/cmd/migrate/migrate"
+	"github.com/appuio/appuio-cloud-reporting/cmd/migrate/migrate"
 )
 
 func main() {
