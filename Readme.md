@@ -24,7 +24,7 @@ psql -U "${DB_USER}" -w -h localhost reporting
 ## Local Installation
 
 ```sh
-SUPERUSER_PW=$(ruby -rsecurerandom -e "puts SecureRandom.alphanumeric(40)")
+SUPERUSER_PW=$(pwgen 40 1)
 
 kubectl create ns appuio-reporting
 kubectl -nappuio-reporting create secret generic reporting-db-superuser --from-literal=user=reporting-db-superuser "--from-literal=password=${SUPERUSER_PW}"
