@@ -7,24 +7,23 @@ import (
 
 	"github.com/appuio/appuio-cloud-reporting/pkg/db"
 	dbflag "github.com/appuio/appuio-cloud-reporting/pkg/db/flag"
-	"github.com/appuio/appuio-cloud-reporting/pkg/db/types"
 )
 
 func Main() error {
 	flag.Parse()
 
-	db, err := db.Openx(dbflag.DatabaseURL)
+	rdb, err := db.Openx(dbflag.DatabaseURL)
 	if err != nil {
 		return fmt.Errorf("could not open database connection: %w", err)
 	}
-	defer db.Close()
+	defer rdb.Close()
 
-	debugCategory := types.Category{
+	debugCategory := db.Category{
 		Source: "debug_category",
 		Target: sql.NullString{String: "debug_target", Valid: true},
 	}
 
-	tx, err := db.Beginx()
+	tx, err := rdb.Beginx()
 	if err != nil {
 		return fmt.Errorf("error starting transaction: %w", err)
 	}
@@ -43,7 +42,7 @@ func Main() error {
 	}
 	fmt.Println("category has id", id)
 
-	var retreivedCategory types.Category
+	var retreivedCategory db.Category
 	err = tx.Get(&retreivedCategory, "SELECT * FROM categories WHERE id=$1", id)
 	if err != nil {
 		return fmt.Errorf("error retrieving category: %w", err)

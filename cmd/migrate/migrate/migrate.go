@@ -6,7 +6,6 @@ import (
 
 	"github.com/appuio/appuio-cloud-reporting/pkg/db"
 	dbflag "github.com/appuio/appuio-cloud-reporting/pkg/db/flag"
-	"github.com/appuio/appuio-cloud-reporting/pkg/db/migrations"
 )
 
 func Main() error {
@@ -14,13 +13,13 @@ func Main() error {
 	flag.BoolVar(&showPending, "show-pending", false, "Shows pending migrations if set.")
 	flag.Parse()
 
-	db, err := db.Open(dbflag.DatabaseURL)
+	rdb, err := db.Open(dbflag.DatabaseURL)
 	if err != nil {
 		return fmt.Errorf("could not open database connection: %w", err)
 	}
 
 	if showPending {
-		pm, err := migrations.Pending(db)
+		pm, err := db.Pending(rdb)
 		if err != nil {
 			return fmt.Errorf("error showing pending migrations: %w", err)
 		}
@@ -31,7 +30,7 @@ func Main() error {
 		return nil
 	}
 
-	err = migrations.Migrate(db)
+	err = db.Migrate(rdb)
 	if err != nil {
 		return fmt.Errorf("could not migrate database: %w", err)
 	}
