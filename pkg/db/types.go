@@ -2,7 +2,10 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"time"
+
+	"github.com/jackc/pgtype"
 )
 
 type Query struct {
@@ -13,8 +16,7 @@ type Query struct {
 	Query       string
 	Unit        string
 
-	After  sql.NullTime
-	Before sql.NullTime
+	During pgtype.Tstzrange
 }
 
 type Tenant struct {
@@ -39,8 +41,7 @@ type Product struct {
 	Amount int64
 	Unit   string
 
-	After  sql.NullTime
-	Before sql.NullTime
+	During pgtype.Tstzrange
 }
 
 type Discount struct {
@@ -49,8 +50,7 @@ type Discount struct {
 	Source   string
 	Discount int
 
-	After  sql.NullTime
-	Before sql.NullTime
+	During pgtype.Tstzrange
 }
 
 type DateTime struct {
@@ -75,4 +75,34 @@ type Fact struct {
 	DiscountId string `db:"discount_id"`
 
 	Quantity float64
+}
+
+// Timestamp creates a Postgres timestamp from the given value.
+// Valid values are nil, pgtype.Infinity/pgtype.NegativeInfinity, and a time.Time object.
+func Timestamp(from interface{}) (pgtype.Timestamptz, error) {
+	ts := pgtype.Timestamptz{}
+	err := ts.Set(from)
+	return ts, err
+}
+
+// Timestamp creates a Postgres timestamp from the given value.
+// Valid values are nil, pgtype.Infinity/pgtype.NegativeInfinity, and a time.Time object.
+// Panics if given an unsupported type.
+func MustTimestamp(from interface{}) pgtype.Timestamptz {
+	ts, err := Timestamp(from)
+	if err != nil {
+		panic(fmt.Errorf("expected to create valid timestamp: %s", err))
+	}
+	return ts
+}
+
+// Timerange creates a Postgres timerange from two Postgres timestamps with [lower,upper) bounds.
+func Timerange(lower, upper pgtype.Timestamptz) pgtype.Tstzrange {
+	return pgtype.Tstzrange{
+		Lower:     lower,
+		LowerType: pgtype.Inclusive,
+		Upper:     upper,
+		UpperType: pgtype.Exclusive,
+		Status:    pgtype.Present,
+	}
 }

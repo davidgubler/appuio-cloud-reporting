@@ -20,3 +20,7 @@ func Openx(dataSourceName string) (*sqlx.DB, error) {
 	}
 	return sqlx.NewDb(db, driver), nil
 }
+
+func NewDBx(db *sql.DB) *sqlx.DB {
+	return sqlx.NewDb(db, driver)
+}
