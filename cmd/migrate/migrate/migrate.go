@@ -9,13 +9,24 @@ import (
 )
 
 func Main() error {
-	var showPending bool
+	var showPending, seed bool
+	flag.BoolVar(&seed, "seed", false, "Seeds the database.")
 	flag.BoolVar(&showPending, "show-pending", false, "Shows pending migrations if set.")
 	flag.Parse()
 
 	rdb, err := db.Open(dbflag.DatabaseURL)
 	if err != nil {
 		return fmt.Errorf("could not open database connection: %w", err)
+	}
+
+	if seed {
+		err := db.Seed(rdb)
+		if err != nil {
+			return fmt.Errorf("error seeding database: %w", err)
+		}
+
+		fmt.Println("Done seeding...")
+		return nil
 	}
 
 	if showPending {

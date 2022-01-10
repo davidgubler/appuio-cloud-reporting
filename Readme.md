@@ -79,6 +79,7 @@ createdb appuio-cloud-reporting-test
 export DB_URL="postgres://localhost/appuio-cloud-reporting-test?sslmode=disable"
 
 go run ./cmd/migrate
+go run ./cmd/migrate -seed
 go test ./...
 ```
 
