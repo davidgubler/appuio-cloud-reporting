@@ -80,8 +80,15 @@ export DB_URL="postgres://localhost/appuio-cloud-reporting-test?sslmode=disable"
 
 go run ./cmd/migrate
 go test ./...
+```
 
-# VSCode integration/ Debug Support
+### IDE Integration
+
+To enable IDE Test/Debug support, `DB_URL` should be added to the test environment.
+
+#### VSCode
+
+```sh
 mkdir -p .vscode
 touch .vscode/settings.json
 jq -s '(.[0] // {}) | ."go.testEnvVars"."DB_URL" = $ENV."DB_URL"' .vscode/settings.json > .vscode/settings.json.i
