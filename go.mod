@@ -3,6 +3,7 @@ module github.com/appuio/appuio-cloud-reporting
 go 1.17
 
 require (
+	github.com/google/uuid v1.3.0
 	github.com/jackc/pgconn v1.10.1
 	github.com/jackc/pgtype v1.9.1
 	github.com/jackc/pgx/v4 v4.14.1
