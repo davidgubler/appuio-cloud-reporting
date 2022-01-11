@@ -77,14 +77,20 @@ func cloneDB(maint *sqlx.DB, dst, src pgx.Identifier) error {
 			src.Sanitize(),
 		),
 	)
-	return err
+	if err != nil {
+		return fmt.Errorf("error cloning database `%s` to `%s`: %w", src.Sanitize(), dst.Sanitize(), err)
+	}
+	return nil
 }
 
 func dropDB(maint *sqlx.DB, db pgx.Identifier) error {
 	_, err := maint.Exec(
 		fmt.Sprintf(`DROP DATABASE %s WITH (FORCE)`, db.Sanitize()),
 	)
-	return err
+	if err != nil {
+		return fmt.Errorf("error dropping database `%s`: %w", db.Sanitize(), err)
+	}
+	return nil
 }
 
 func openMaintenance(dbURL string) (*sqlx.DB, error) {
@@ -93,5 +99,9 @@ func openMaintenance(dbURL string) (*sqlx.DB, error) {
 		return nil, fmt.Errorf("error parsing url: %w", err)
 	}
 	maintURL.Path = "/postgres"
-	return db.Openx(maintURL.String())
+	mdb, err := db.Openx(maintURL.String())
+	if err != nil {
+		return nil, fmt.Errorf("error connecting to maintenance (`%s`) database: %w", maintURL.Path, err)
+	}
+	return mdb, nil
 }
