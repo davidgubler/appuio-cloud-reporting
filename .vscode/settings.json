@@ -1,0 +1,5 @@
+{
+  "go.testEnvVars": {
+    "DB_URL": "postgres://localhost/appuio-cloud-reporting-test?sslmode=disable"
+  }
+}

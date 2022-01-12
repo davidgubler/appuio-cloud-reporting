@@ -6,11 +6,14 @@ require (
 	github.com/go-logr/logr v1.2.2
 	github.com/go-logr/zapr v1.2.2
 	github.com/google/uuid v1.3.0
+	github.com/hashicorp/go-getter v1.5.11
 	github.com/jackc/pgconn v1.10.1
 	github.com/jackc/pgtype v1.9.1
 	github.com/jackc/pgx/v4 v4.14.1
 	github.com/jmoiron/sqlx v1.3.4
 	github.com/lopezator/migrator v0.3.0
+	github.com/prometheus/client_golang v1.11.0
+	github.com/prometheus/common v0.32.1
 	github.com/stretchr/testify v1.7.0
 	github.com/urfave/cli/v2 v2.3.0
 	go.uber.org/zap v1.19.0
@@ -47,3 +50,5 @@ require (
 	k8s.io/apimachinery v0.20.2 // indirect
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
+
+replace github.com/codahale/hdrhistogram => github.com/HdrHistogram/hdrhistogram-go v1.1.2
