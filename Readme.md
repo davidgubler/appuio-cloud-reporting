@@ -24,11 +24,13 @@ psql -U "${DB_USER}" -w -h localhost reporting
 ## Local Installation
 
 ```sh
+make kind-setup
+export KUBECONFIG=.kind/kind-kubeconfig
 SUPERUSER_PW=$(pwgen 40 1)
 
 kubectl create ns appuio-reporting
-kubectl -nappuio-reporting create secret generic reporting-db-superuser --from-literal=user=reporting-db-superuser "--from-literal=password=${SUPERUSER_PW}"
-kubectl -nappuio-reporting apply -k manifests/base
+kubectl -n appuio-reporting create secret generic reporting-db-superuser --from-literal=user=reporting-db-superuser "--from-literal=password=${SUPERUSER_PW}"
+kubectl -n appuio-reporting apply -k manifests/base
 ```
 
 ## Usage
