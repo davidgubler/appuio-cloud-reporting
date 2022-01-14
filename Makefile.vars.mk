@@ -1,7 +1,6 @@
 ## These are some common variables for Make
 
 PROJECT_ROOT_DIR = .
-# TODO: Adjust project meta
 PROJECT_NAME ?= appuio-cloud-reporting
 PROJECT_OWNER ?= appuio
 
