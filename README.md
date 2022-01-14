@@ -1,5 +1,16 @@
 # APPUiO Cloud Reporting
 
+[![Build](https://img.shields.io/github/workflow/status/appuio/appuio-cloud-reporting/Test)][build]
+![Go version](https://img.shields.io/github/go-mod/go-version/appuio/appuio-cloud-reporting)
+[![Version](https://img.shields.io/github/v/release/appuio/appuio-cloud-reporting)][releases]
+[![Maintainability](https://img.shields.io/codeclimate/maintainability/appuio/appuio-cloud-reporting)][codeclimate]
+[![Coverage](https://img.shields.io/codeclimate/coverage/appuio/appuio-cloud-reporting)][codeclimate]
+[![GitHub downloads](https://img.shields.io/github/downloads/appuio/appuio-cloud-reporting/total)][releases]
+
+[build]: https://github.com/appuio/appuio-cloud-reporting/actions?query=workflow%3ATest
+[releases]: https://github.com/appuio/appuio-cloud-reporting/releases
+[codeclimate]: https://codeclimate.com/github/appuio/appuio-cloud-reporting
+
 ## Use APPUiO Global instance
 
 ```sh
