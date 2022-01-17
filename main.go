@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"runtime"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -49,7 +48,7 @@ func newApp() (context.Context, context.CancelFunc, *cli.App) {
 
 		EnableBashCompletion: true,
 
-		Before: beforeAction,
+		Before: setupLogging,
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
 				Name:    "debug",
@@ -90,30 +89,8 @@ func rootAction(hasSubcommands bool) func(context *cli.Context) error {
 		if hasSubcommands {
 			return cli.ShowAppHelp(context)
 		}
-		return logMetadata(context)
+		return LogMetadata(context)
 	}
-}
-
-func beforeAction(c *cli.Context) error {
-	setupLogging(c)
-	return nil
-}
-
-func logMetadata(c *cli.Context) error {
-	log := AppLogger(c)
-	if !usesProductionLoggingConfig(c) {
-		log = log.WithValues("version", version)
-	}
-	log.WithValues(
-		"date", date,
-		"commit", commit,
-		"go_os", runtime.GOOS,
-		"go_arch", runtime.GOARCH,
-		"go_version", runtime.Version(),
-		"uid", os.Getuid(),
-		"gid", os.Getgid(),
-	).Info("Starting up " + appName)
-	return nil
 }
 
 // env combines envPrefix with given suffix delimited by underscore.

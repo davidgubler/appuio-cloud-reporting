@@ -28,7 +28,7 @@ func newTestReportCommand() *cli.Command {
 }
 
 func (cmd *testReportCommand) before(ctx *cli.Context) error {
-	return logMetadata(ctx)
+	return LogMetadata(ctx)
 }
 
 func (cmd *testReportCommand) execute(context *cli.Context) error {

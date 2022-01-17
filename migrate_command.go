@@ -29,7 +29,7 @@ func newMigrateCommand() *cli.Command {
 }
 
 func (cmd *migrateCommand) before(ctx *cli.Context) error {
-	return logMetadata(ctx)
+	return LogMetadata(ctx)
 }
 
 func (cmd *migrateCommand) execute(context *cli.Context) error {
