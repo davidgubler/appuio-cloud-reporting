@@ -18,6 +18,9 @@ var appuioCloudLoadbalancerQuery string
 //go:embed seeds/appuio_cloud_persistent_storage.promql
 var appuioCloudPersistentStorageQuery string
 
+//go:embed seeds/ping.promql
+var pingQuery string
+
 var DefaultQueries = []Query{
 	{
 		Name:        "appuio_cloud_memory",
@@ -36,6 +39,12 @@ var DefaultQueries = []Query{
 		Query:       appuioCloudPersistentStorageQuery,
 		Unit:        "GiB",
 	},
+	{
+		Name:        "ping",
+		Description: "Ping is a query that always returns `42` for `my-product:my-cluster:my-tenant:my-namespace`",
+		Query:       pingQuery,
+		Unit:        "None",
+	},
 }
 
 func Seed(db *sql.DB) error {
@@ -47,6 +56,10 @@ func Seed(db *sql.DB) error {
 	defer tx.Rollback()
 
 	if err := createDefaultQueries(tx); err != nil {
+		return err
+	}
+
+	if err := createPingQueryDependencies(tx); err != nil {
 		return err
 	}
 
@@ -68,6 +81,29 @@ func createDefaultQueries(tx *sqlx.Tx) error {
 			return fmt.Errorf("error creating default query: %w", err)
 		}
 	}
+	return nil
+}
+
+func createPingQueryDependencies(tx *sqlx.Tx) error {
+	_, err := tx.NamedExec("INSERT INTO products (source,target,amount,unit,during) VALUES (:source,:target,:amount,:unit,:during) ON CONFLICT DO NOTHING", Product{
+		Source: "ping-product:ping-cluster",
+		Amount: 1,
+		Unit:   "tps",
+		During: InfiniteRange(),
+	})
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.NamedExec("INSERT INTO discounts (source,discount,during) VALUES (:source,:discount,:during) ON CONFLICT DO NOTHING", Discount{
+		Source:   "ping-product:ping-cluster",
+		Discount: 0,
+		During:   InfiniteRange(),
+	})
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

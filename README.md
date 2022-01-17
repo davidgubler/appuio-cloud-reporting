@@ -17,14 +17,18 @@
 # Follow the login instructions to get a token
 oc login --server=https://api.cloudscale-lpg-2.appuio.cloud:6443
 
-# Forward database port to local host
+# Forward database and thanos to local host
 kubectl -n appuio-reporting port-forward svc/reporting-db 5432 &
+kubectl --as=cluster-admin -n appuio-thanos port-forward svc/thanos-query 9090 &
 
 # Check for pending migrations
 DB_USER=$(kubectl -n appuio-reporting get secret/reporting-db-superuser -o jsonpath='{.data.user}' | base64 --decode)
 DB_PASSWORD=$(kubectl -n appuio-reporting get secret/reporting-db-superuser -o jsonpath='{.data.password}' | base64 --decode)
 export DB_URL="postgres://${DB_USER}:${DB_PASSWORD}@localhost/reporting?sslmode=disable"
 go run ./cmd/migrate -show-pending
+
+# Run a query
+go run ./cmd/report ping "2022-01-17T09:00:00Z"
 
 # Connect to the database's interactive terminal
 DB_USER=$(kubectl -n appuio-reporting get secret/reporting-db-superuser -o jsonpath='{.data.user}' | base64 --decode)

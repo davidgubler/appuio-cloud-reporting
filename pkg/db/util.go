@@ -3,6 +3,7 @@ package db
 import (
 	"fmt"
 
+	"github.com/jackc/pgtype"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -17,4 +18,8 @@ func GetNamed(p NamedPreparer, dest interface{}, query string, arg interface{}) 
 	}
 	defer st.Close()
 	return st.Get(dest, arg)
+}
+
+func InfiniteRange() pgtype.Tstzrange {
+	return Timerange(MustTimestamp(pgtype.NegativeInfinity), MustTimestamp(pgtype.Infinity))
 }
