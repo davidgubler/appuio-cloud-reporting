@@ -33,15 +33,12 @@ build-bin: fmt vet ## Build binary
 build-docker: build-bin ## Build docker image
 	$(DOCKER_CMD) build -t $(CONTAINER_IMG) .
 
+.PHONY: ensure-prometheus
+ensure-prometheus:
+	go run ./util/ensure_prometheus
+
 .PHONY: test
-test: test-go test-integration ## All-in-one test
-
-.PHONY: test-go
-test-go: ## Run unit tests against code
-	go test -race -coverprofile cover.out -covermode atomic ./...
-
-.PHONY: test-integration
-test-integration: ## Run integration tests with background services
+test: ensure-prometheus
 	docker rm -f test-migrations ||:
 	docker run -d --name test-migrations -e POSTGRES_DB=test-migrations -e POSTGRES_USER=test-migrations -e POSTGRES_PASSWORD=test-migrations -p65432:5432 postgres:13-bullseye
 	docker exec -t test-migrations sh -c 'until pg_isready; do sleep 1; done; sleep 1'
