@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"text/template"
 
 	"github.com/hashicorp/go-getter"
@@ -25,9 +26,11 @@ var (
 	downloadURLTmpl  = template.Must(template.New("downloadURL").Parse(
 		"https://github.com/prometheus/prometheus/releases/download/v{{.Version}}/" + baseFileNameTmplStr + ".tar.gz",
 	))
+
+	ensurePrometheusMutex sync.Mutex
 )
 
-// StartPrometheus starts a new prometheus instance on the given port. Not safe to call concurrently.
+// StartPrometheus starts a new prometheus instance on the given port.
 // Cancel the context to stop.
 // The returned cleanup function block until prometheus is stopped. Cleanup has to be called.
 func StartPrometheus(ctx context.Context, port int) (cleanup func() error, err error) {
@@ -54,8 +57,10 @@ func StartPrometheus(ctx context.Context, port int) (cleanup func() error, err e
 	}, cmd.Start()
 }
 
-// EnsurePrometheus ensures the prometheus binary is downloaded. Not safe to call concurrently.
+// EnsurePrometheus ensures the prometheus binary is downloaded.
 func EnsurePrometheus(ctx context.Context, version string) (string, error) {
+	ensurePrometheusMutex.Lock()
+	defer ensurePrometheusMutex.Unlock()
 	promPath, err := prometheusPath(Version)
 	if err != nil {
 		return "", err
