@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/appuio/appuio-cloud-reporting/pkg/db"
+	"github.com/appuio/appuio-cloud-reporting/pkg/sourcekey"
 	"github.com/jmoiron/sqlx"
 	apiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
@@ -56,6 +57,11 @@ func processSample(tx *sqlx.Tx, ts time.Time, query db.Query, s *model.Sample) e
 		return err
 	}
 
+	skey, err := sourcekey.Parse(string(productLabel))
+	if err != nil {
+		return fmt.Errorf("failed to parse source key from product label: %w", err)
+	}
+
 	var upsertedTenant db.Tenant
 	err = db.GetNamed(tx, &upsertedTenant,
 		"INSERT INTO tenants (source) VALUES (:source) ON CONFLICT (source) DO UPDATE SET source = :source RETURNING *", db.Tenant{
@@ -74,10 +80,21 @@ func processSample(tx *sqlx.Tx, ts time.Time, query db.Query, s *model.Sample) e
 		return fmt.Errorf("failed to upsert category '%s': %w", tenant, err)
 	}
 
+	sourceLookup := skey.LookupKeys()
+
 	var product db.Product
 	err = sqlx.Get(tx, &product,
-		"SELECT * FROM products WHERE starts_with($1,source) AND (during @> $2::timestamptz)",
-		string(productLabel), ts,
+		`WITH keys AS (
+				SELECT row_number() over () AS prio, unnest as key
+				FROM unnest($1::text[])
+			)
+			SELECT products.*
+				FROM products
+				INNER JOIN keys ON (keys.key = products.source)
+				WHERE during @> $2::timestamptz
+				ORDER BY prio
+				LIMIT 1`,
+		sourceLookup, ts,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to load product for '%s': %w", productLabel, err)
@@ -85,8 +102,17 @@ func processSample(tx *sqlx.Tx, ts time.Time, query db.Query, s *model.Sample) e
 
 	var discount db.Discount
 	err = sqlx.Get(tx, &discount,
-		"SELECT * FROM discounts WHERE starts_with($1,source) AND (during @> $2::timestamptz)",
-		string(productLabel), ts,
+		`WITH keys AS (
+			SELECT row_number() over () AS prio, unnest as key
+			FROM unnest($1::text[])
+		)
+		SELECT discounts.*
+			FROM discounts
+			INNER JOIN keys ON (keys.key = discounts.source)
+			WHERE during @> $2::timestamptz
+			ORDER BY prio
+			LIMIT 1`,
+		sourceLookup, ts,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to load discount for '%s': %w", productLabel, err)
