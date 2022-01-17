@@ -30,7 +30,12 @@ var (
 func main() {
 	ctx, stop, app := newApp()
 	defer stop()
-	_ = app.RunContext(ctx, os.Args)
+	err := app.RunContext(ctx, os.Args)
+	// If required flags aren't set, it will exit before we could set up logging
+	if err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
+	}
 }
 
 func newApp() (context.Context, context.CancelFunc, *cli.App) {
@@ -85,21 +90,16 @@ func rootAction(hasSubcommands bool) func(context *cli.Context) error {
 		if hasSubcommands {
 			return cli.ShowAppHelp(context)
 		}
-		logMetadata(context)
-		return nil
+		return logMetadata(context)
 	}
 }
 
 func beforeAction(c *cli.Context) error {
 	setupLogging(c)
-	if c.Args().Present() {
-		// only print metadata if not displaying usage
-		logMetadata(c)
-	}
 	return nil
 }
 
-func logMetadata(c *cli.Context) {
+func logMetadata(c *cli.Context) error {
 	log := AppLogger(c)
 	if !usesProductionLoggingConfig(c) {
 		log = log.WithValues("version", version)
@@ -113,6 +113,7 @@ func logMetadata(c *cli.Context) {
 		"uid", os.Getuid(),
 		"gid", os.Getgid(),
 	).Info("Starting up " + appName)
+	return nil
 }
 
 // env combines envPrefix with given suffix delimited by underscore.

@@ -5,11 +5,11 @@ import (
 	"fmt"
 
 	"github.com/appuio/appuio-cloud-reporting/pkg/db"
-	dbflag "github.com/appuio/appuio-cloud-reporting/pkg/db/flag"
 	"github.com/urfave/cli/v2"
 )
 
 type testReportCommand struct {
+	DatabaseURL string
 }
 
 var testReportCommandName = "testreport"
@@ -19,15 +19,23 @@ func newTestReportCommand() *cli.Command {
 	return &cli.Command{
 		Name:   testReportCommandName,
 		Usage:  "For quickly testing something in local development",
+		Before: command.before,
 		Action: command.execute,
+		Flags: []cli.Flag{
+			&cli.StringFlag{Name: "db-url", Usage: "Database connection URL in the form of postgres://user@host:port/db-name?option=value", EnvVars: envVars("DB_URL"), Destination: &command.DatabaseURL, Required: true},
+		},
 	}
+}
+
+func (cmd *testReportCommand) before(ctx *cli.Context) error {
+	return logMetadata(ctx)
 }
 
 func (cmd *testReportCommand) execute(context *cli.Context) error {
 	log := AppLogger(context).WithName(migrateCommandName)
-	log.V(1).Info("Opening database connection", "url", dbflag.DatabaseURL)
+	log.V(1).Info("Opening database connection", "url", cmd.DatabaseURL)
 
-	rdb, err := db.Openx(dbflag.DatabaseURL)
+	rdb, err := db.Openx(cmd.DatabaseURL)
 	if err != nil {
 		return fmt.Errorf("could not open database connection: %w", err)
 	}

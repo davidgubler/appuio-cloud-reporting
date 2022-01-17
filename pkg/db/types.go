@@ -85,7 +85,7 @@ func Timestamp(from interface{}) (pgtype.Timestamptz, error) {
 	return ts, err
 }
 
-// Timestamp creates a Postgres timestamp from the given value.
+// MustTimestamp creates a Postgres timestamp from the given value.
 // Valid values are nil, pgtype.Infinity/pgtype.NegativeInfinity, and a time.Time object.
 // Panics if given an unsupported type.
 func MustTimestamp(from interface{}) pgtype.Timestamptz {
