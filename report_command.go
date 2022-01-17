@@ -28,10 +28,10 @@ func newReportCommand() *cli.Command {
 		Before: command.before,
 		Action: command.execute,
 		Flags: []cli.Flag{
-			&cli.StringFlag{Name: "db-url", Usage: "Database connection URL in the form of postgres://user@host:port/db-name?option=value", EnvVars: envVars("DB_URL"), Destination: &command.DatabaseURL, Required: true},
-			&cli.StringFlag{Name: "prom-url", Usage: "Prometheus connection URL in the form of http://host:port", EnvVars: envVars("PROM_URL"), Destination: &command.PrometheusUrl, Required: true},
-			&cli.StringFlag{Name: "query-name", Usage: "Name of the query", EnvVars: envVars("QUERY_NAME"), Destination: &command.QueryName, Required: true},
-			&cli.TimestampFlag{Name: "begin", Usage: "Beginning timestamp of the report period", EnvVars: envVars("BEGIN"), Layout: time.RFC3339, Required: true},
+			newDbUrlFlag(&command.DatabaseURL),
+			newPromUrlFlag(&command.PrometheusUrl),
+			&cli.StringFlag{Name: "query-name", Usage: fmt.Sprintf("Name of the query (values: %s)", queryNames(db.DefaultQueries)), EnvVars: envVars("QUERY_NAME"), Destination: &command.QueryName, Required: true, DefaultText: defaultTestForRequiredFlags},
+			&cli.TimestampFlag{Name: "begin", Usage: fmt.Sprintf("Beginning timestamp of the report period in the form of RFC3339 (%s)", time.RFC3339), EnvVars: envVars("BEGIN"), Layout: time.RFC3339, Required: true, DefaultText: defaultTestForRequiredFlags},
 		},
 	}
 }

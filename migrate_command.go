@@ -25,7 +25,7 @@ func newMigrateCommand() *cli.Command {
 		Flags: []cli.Flag{
 			&cli.BoolFlag{Name: "show-pending", Usage: "Shows pending migrations and exits", EnvVars: envVars("SHOW_PENDING"), Destination: &command.ShowPending},
 			&cli.BoolFlag{Name: "seed", Usage: "Seeds database with initial data and exits", EnvVars: envVars("SEED"), Destination: &command.SeedEnabled},
-			&cli.StringFlag{Name: "db-url", Usage: "Database connection URL in the form of postgres://user@host:port/db-name?option=value", EnvVars: envVars("DB_URL"), Destination: &command.DatabaseURL, Required: true},
+			newDbUrlFlag(&command.DatabaseURL),
 		},
 	}
 }

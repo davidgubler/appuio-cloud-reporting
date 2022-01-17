@@ -22,7 +22,7 @@ func newTestReportCommand() *cli.Command {
 		Before: command.before,
 		Action: command.execute,
 		Flags: []cli.Flag{
-			&cli.StringFlag{Name: "db-url", Usage: "Database connection URL in the form of postgres://user@host:port/db-name?option=value", EnvVars: envVars("DB_URL"), Destination: &command.DatabaseURL, Required: true},
+			newDbUrlFlag(&command.DatabaseURL),
 		},
 	}
 }
