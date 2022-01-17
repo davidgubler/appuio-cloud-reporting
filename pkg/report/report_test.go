@@ -70,37 +70,37 @@ func (s *ReportSuite) SetupSuite() {
 			}))
 }
 
-func (s *ReportSuite) TestReportCreateFact() {
+func (s *ReportSuite) TestReport_RunReportCreatesFact() {
 	t := s.T()
-	tdb := s.DB()
 	prom := s.PrometheusAPIClient()
 	query := s.sampleQuery
 
-	ts := time.Now()
-	require.NoError(t, report.Run(tdb, prom, query.Name, ts))
-	fact := s.getFactForQueryIdAndProductSource(query, "my-product:my-cluster", ts)
-	require.Equal(t, float64(defaultQueryReturnValue), fact.Quantity)
-
-	_, err := tdb.Exec("UPDATE queries SET query = $1 WHERE id = $2", fmt.Sprintf(promTestquery, 77), query.Id)
+	tx, err := s.DB().Beginx()
 	require.NoError(t, err)
-	require.NoError(t, report.Run(tdb, prom, query.Name, ts))
-	fact = s.getFactForQueryIdAndProductSource(query, "my-product:my-cluster", ts)
-	require.Equal(t, float64(77), fact.Quantity)
+	defer tx.Rollback()
+
+	ts := time.Now()
+	require.NoError(t, report.Run(tx, prom, query.Name, ts))
+	fact := s.getFactForQueryIdAndProductSource(tx, query, "my-product:my-cluster", ts)
+	require.Equal(t, float64(defaultQueryReturnValue), fact.Quantity)
 }
 
-func (s *ReportSuite) TestReportUpdateFact() {
+func (s *ReportSuite) TestReport_RerunReportUpdatesFactQuantity() {
 	t := s.T()
-	tdb := s.DB()
 	prom := s.PrometheusAPIClient()
 	query := s.sampleQuery
 
-	ts := time.Now()
-	require.NoError(t, report.Run(tdb, prom, query.Name, ts))
-
-	_, err := tdb.Exec("UPDATE queries SET query = $1 WHERE id = $2", fmt.Sprintf(promTestquery, 77), query.Id)
+	tx, err := s.DB().Beginx()
 	require.NoError(t, err)
-	require.NoError(t, report.Run(tdb, prom, query.Name, ts))
-	fact := s.getFactForQueryIdAndProductSource(query, "my-product:my-cluster", ts)
+	defer tx.Rollback()
+
+	ts := time.Now()
+	require.NoError(t, report.Run(tx, prom, query.Name, ts))
+
+	_, err = tx.Exec("UPDATE queries SET query = $1 WHERE id = $2", fmt.Sprintf(promTestquery, 77), query.Id)
+	require.NoError(t, err)
+	require.NoError(t, report.Run(tx, prom, query.Name, ts))
+	fact := s.getFactForQueryIdAndProductSource(tx, query, "my-product:my-cluster", ts)
 	require.Equal(t, float64(77), fact.Quantity)
 }
 
@@ -108,12 +108,12 @@ func TestReport(t *testing.T) {
 	suite.Run(t, new(ReportSuite))
 }
 
-func (s *ReportSuite) getFactForQueryIdAndProductSource(q db.Query, productSource string, ts time.Time) db.Fact {
+func (s *ReportSuite) getFactForQueryIdAndProductSource(dbq sqlx.Queryer, q db.Query, productSource string, ts time.Time) db.Fact {
 	var fact db.Fact
 	require.NoError(
 		s.T(),
 		sqlx.Get(
-			s.DB(), &fact,
+			dbq, &fact,
 			"SELECT facts.* FROM facts INNER JOIN products ON (facts.product_id = products.id) WHERE facts.query_id = $1 AND products.source = $2",
 			q.Id, productSource))
 	return fact

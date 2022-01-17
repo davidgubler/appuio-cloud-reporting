@@ -30,5 +30,15 @@ func Main() error {
 	}
 	defer rdb.Close()
 
-	return report.Run(rdb, clientv1, "test", time.Now())
+	tx, err := rdb.Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	if err := report.Run(tx, clientv1, "test", time.Now()); err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
