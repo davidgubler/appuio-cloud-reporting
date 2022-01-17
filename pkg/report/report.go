@@ -17,13 +17,7 @@ type PromQuerier interface {
 
 // Run executes a prometheus query loaded from queries with using the `queryName` and the timestamp.
 // The results of the query are saved in the facts table.
-func Run(dbx *sqlx.DB, prom PromQuerier, queryName string, ts time.Time) error {
-	tx, err := dbx.Beginx()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
+func Run(tx *sqlx.Tx, prom PromQuerier, queryName string, ts time.Time) error {
 	var query db.Query
 	if err := sqlx.Get(tx, &query, "SELECT * FROM queries WHERE name = $1 AND (during @> $2::timestamptz)", queryName, ts); err != nil {
 		return fmt.Errorf("failed to load query '%s' at '%s': %w", queryName, ts.Format(time.RFC3339), err)
@@ -45,7 +39,7 @@ func Run(dbx *sqlx.DB, prom PromQuerier, queryName string, ts time.Time) error {
 		}
 	}
 
-	return tx.Commit()
+	return nil
 }
 
 func processSample(tx *sqlx.Tx, ts time.Time, query db.Query, s *model.Sample) error {
