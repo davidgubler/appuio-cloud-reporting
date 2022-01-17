@@ -23,6 +23,7 @@ type ReportSuite struct {
 	sampleQuery    db.Query
 }
 
+const defaultQueryReturnValue = 42
 const promTestquery = `
 	label_replace(
 		label_replace(
@@ -63,7 +64,7 @@ func (s *ReportSuite) SetupSuite() {
 		db.GetNamed(tdb, &s.sampleQuery,
 			"INSERT INTO queries (name,description,query,unit,during) VALUES (:name,:description,:query,:unit,:during) RETURNING *", db.Query{
 				Name:   "test",
-				Query:  fmt.Sprintf(promTestquery, 24),
+				Query:  fmt.Sprintf(promTestquery, defaultQueryReturnValue),
 				Unit:   "tps",
 				During: infiniteRange(),
 			}))
@@ -78,7 +79,7 @@ func (s *ReportSuite) TestReportCreateFact() {
 	ts := time.Now()
 	require.NoError(t, report.Run(tdb, prom, query.Name, ts))
 	fact := s.getFactForQueryIdAndProductSource(query, "my-product:my-cluster", ts)
-	require.Equal(t, float64(24), fact.Quantity)
+	require.Equal(t, float64(defaultQueryReturnValue), fact.Quantity)
 
 	_, err := tdb.Exec("UPDATE queries SET query = $1 WHERE id = $2", fmt.Sprintf(promTestquery, 77), query.Id)
 	require.NoError(t, err)
