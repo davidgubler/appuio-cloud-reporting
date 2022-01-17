@@ -8,7 +8,6 @@ import (
 var DatabaseURL string
 
 func init() {
-	os.Getenv("DB_URL")
 	flag.StringVar(&DatabaseURL, "db-url", urlFromEnv(), "The URL to connect to the database.")
 }
 
