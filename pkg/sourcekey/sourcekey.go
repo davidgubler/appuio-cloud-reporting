@@ -5,9 +5,6 @@ import (
 	"strings"
 
 	"github.com/ernestosuarez/itertools"
-
-	// TODO: Fails with unknown flag when executing `make test` if not registered.
-	_ "github.com/appuio/appuio-cloud-reporting/pkg/db/flag"
 )
 
 const elementSeparator = ":"

@@ -32,7 +32,7 @@ func (cmd *testReportCommand) before(ctx *cli.Context) error {
 }
 
 func (cmd *testReportCommand) execute(context *cli.Context) error {
-	log := AppLogger(context).WithName(migrateCommandName)
+	log := AppLogger(context).WithName(testReportCommandName)
 	log.V(1).Info("Opening database connection", "url", cmd.DatabaseURL)
 
 	rdb, err := db.Openx(cmd.DatabaseURL)
