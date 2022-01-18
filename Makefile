@@ -46,7 +46,6 @@ test: ensure-prometheus
 	go run github.com/appuio/appuio-cloud-reporting migrate
 	go run github.com/appuio/appuio-cloud-reporting migrate --seed
 	go test ./... -tags integration -coverprofile cover.out -covermode atomic
-	go run github.com/appuio/appuio-cloud-reporting testreport
 	docker rm -f test-migrations
 
 .PHONY: fmt

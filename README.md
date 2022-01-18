@@ -28,7 +28,7 @@ export DB_URL="postgres://${DB_USER}:${DB_PASSWORD}@localhost/reporting?sslmode=
 go run github.com/appuio/appuio-cloud-reporting migrate --show-pending
 
 # Run a query
-go run github.com/appuio/appuio-cloud-reporting report ping "2022-01-17T09:00:00Z"
+go run github.com/appuio/appuio-cloud-reporting report --query-name ping --begin "2022-01-17T09:00:00Z"
 
 # Connect to the database's interactive terminal
 DB_USER=$(kubectl -n appuio-reporting get secret/reporting-db-superuser -o jsonpath='{.data.user}' | base64 --decode)
@@ -50,16 +50,17 @@ kubectl -n appuio-reporting apply -k manifests/base
 
 ## Usage
 
-### Run Test Query
+### Run Report
 
 ```sh
 kubectl -n appuio-reporting port-forward svc/reporting-db 5432 &
+kubectl --as=cluster-admin -n appuio-thanos port-forward svc/thanos-query 9090 &
 
 DB_USER=$(kubectl -n appuio-reporting get secret/reporting-db-superuser -o jsonpath='{.data.user}' | base64 --decode)
 DB_PASSWORD=$(kubectl -n appuio-reporting get secret/reporting-db-superuser -o jsonpath='{.data.password}' | base64 --decode)
 export DB_URL="postgres://${DB_USER}:${DB_PASSWORD}@localhost/reporting?sslmode=disable"
 
-go run github.com/appuio/appuio-cloud-reporting testreport
+go run github.com/appuio/appuio-cloud-reporting report --query-name ping --begin "2022-01-17T09:00:00Z"
 ```
 
 ### Migrate to Most Recent Schema

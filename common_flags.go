@@ -14,7 +14,7 @@ func newDbUrlFlag(destination *string) *cli.StringFlag {
 
 func newPromUrlFlag(destination *string) *cli.StringFlag {
 	return &cli.StringFlag{Name: "prom-url", Usage: "Prometheus connection URL in the form of http://host:port", EnvVars: envVars("PROM_URL"),
-		Destination: destination, Required: true, DefaultText: defaultTestForRequiredFlags}
+		Destination: destination, Value: "http://localhost:9090"}
 }
 
 func queryNames(queries []db.Query) []string {
