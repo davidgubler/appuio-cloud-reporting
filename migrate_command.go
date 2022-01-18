@@ -62,7 +62,8 @@ func (cmd *migrateCommand) execute(context *cli.Context) error {
 		for _, p := range pm {
 			fmt.Println(p.Name)
 		}
-		return nil
+		// non-zero exit code could be used in scripts
+		return cli.Exit("", 1)
 	}
 
 	log.V(1).Info("Start DB migrations")
