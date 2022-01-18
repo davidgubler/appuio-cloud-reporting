@@ -3,8 +3,6 @@ package sourcekey
 import (
 	"fmt"
 	"strings"
-
-	"github.com/ernestosuarez/itertools"
 )
 
 const elementSeparator = ":"
@@ -78,17 +76,53 @@ func generateSourceKeys(query, zone, tenant, namespace, class string) []string {
 	return keys
 }
 
-func combinations(s []int, r int) [][]int {
-	collected := make([][]int, 0)
-	for e := range itertools.CombinationsInt(s, r) {
-		collected = append(collected, e)
-	}
-	return collected
-}
-
 func reverse(s [][]int) [][]int {
 	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
 		s[i], s[j] = s[j], s[i]
 	}
 	return s
+}
+
+func combinations(iterable []int, r int) (rt [][]int) {
+	pool := iterable
+	n := len(pool)
+
+	if r > n {
+		return
+	}
+
+	indices := make([]int, r)
+	for i := range indices {
+		indices[i] = i
+	}
+
+	result := make([]int, r)
+	for i, el := range indices {
+		result[i] = pool[el]
+	}
+	s2 := make([]int, r)
+	copy(s2, result)
+	rt = append(rt, s2)
+
+	for {
+		i := r - 1
+		for ; i >= 0 && indices[i] == i+n-r; i -= 1 {
+		}
+
+		if i < 0 {
+			return
+		}
+
+		indices[i] += 1
+		for j := i + 1; j < r; j += 1 {
+			indices[j] = indices[j-1] + 1
+		}
+
+		for ; i < len(indices); i += 1 {
+			result[i] = pool[indices[i]]
+		}
+		s2 = make([]int, r)
+		copy(s2, result)
+		rt = append(rt, s2)
+	}
 }

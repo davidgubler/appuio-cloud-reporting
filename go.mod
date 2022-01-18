@@ -3,7 +3,6 @@ module github.com/appuio/appuio-cloud-reporting
 go 1.17
 
 require (
-	github.com/ernestosuarez/itertools v0.0.0-20190516153236-40a02c159e7b
 	github.com/go-logr/logr v1.2.2
 	github.com/go-logr/zapr v1.2.2
 	github.com/google/uuid v1.3.0
