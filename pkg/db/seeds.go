@@ -24,7 +24,7 @@ var pingQuery string
 var DefaultQueries = []Query{
 	{
 		Name:        "appuio_cloud_memory",
-		Description: "Memory usage (maximum of requested and used memory) aggregated by pod",
+		Description: "Memory usage (maximum of requested and used memory) aggregated by namespace",
 		Query:       appuioCloudMemoryQuery,
 		Unit:        "MiB",
 	},
