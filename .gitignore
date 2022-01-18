@@ -11,8 +11,5 @@ appuio-cloud-reporting
 .public/
 node_modules/
 
-# kind
-.kind/
-
 # IDEs
 .vscode/

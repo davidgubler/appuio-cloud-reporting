@@ -39,8 +39,6 @@ psql -U "${DB_USER}" -w -h localhost reporting
 ## Local Installation
 
 ```sh
-make kind-setup
-export KUBECONFIG=.kind/kind-kubeconfig
 SUPERUSER_PW=$(pwgen 40 1)
 
 kubectl create ns appuio-reporting
