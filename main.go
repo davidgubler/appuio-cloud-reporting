@@ -66,7 +66,6 @@ func newApp() (context.Context, context.CancelFunc, *cli.App) {
 		Commands: []*cli.Command{
 			newMigrateCommand(),
 			newReportCommand(),
-			newTestReportCommand(),
 		},
 		ExitErrHandler: func(context *cli.Context, err error) {
 			if err != nil {
