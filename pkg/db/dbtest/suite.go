@@ -3,6 +3,7 @@ package dbtest
 import (
 	"fmt"
 	"net/url"
+	"os"
 	"strings"
 
 	"github.com/google/uuid"
@@ -12,8 +13,9 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/appuio/appuio-cloud-reporting/pkg/db"
-	dbflag "github.com/appuio/appuio-cloud-reporting/pkg/db/flag"
 )
+
+var DatabaseURL = urlFromEnv()
 
 // Suite holds a database test suite. Each Suite holds its own clone of
 // the database given by `-db-url` or the `DB_URL` environment variable.
@@ -39,14 +41,14 @@ func (ts *Suite) Begin() *sqlx.Tx {
 }
 
 func (ts *Suite) SetupSuite() {
-	u, err := url.Parse(dbflag.DatabaseURL)
+	u, err := url.Parse(DatabaseURL)
 	require.NoError(ts.T(), err)
 	dbName := strings.TrimPrefix(u.Path, "/")
 	tmpDbName := dbName + "-tmp-" + uuid.NewString()
 	ts.tmpDBName = tmpDbName
 
 	// Connect to a neutral database
-	mdb, err := openMaintenance(dbflag.DatabaseURL)
+	mdb, err := openMaintenance(DatabaseURL)
 	require.NoError(ts.T(), err)
 	ts.maintenanceDB = mdb
 
@@ -104,4 +106,11 @@ func openMaintenance(dbURL string) (*sqlx.DB, error) {
 		return nil, fmt.Errorf("error connecting to maintenance (`%s`) database: %w", maintURL.Path, err)
 	}
 	return mdb, nil
+}
+
+func urlFromEnv() string {
+	if u, exists := os.LookupEnv("DB_URL"); exists {
+		return u
+	}
+	return "postgres://postgres@localhost/reporting-db?sslmode=disable"
 }

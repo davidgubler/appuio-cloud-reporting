@@ -1,5 +1,16 @@
 # APPUiO Cloud Reporting
 
+[![Build](https://img.shields.io/github/workflow/status/appuio/appuio-cloud-reporting/Test)][build]
+![Go version](https://img.shields.io/github/go-mod/go-version/appuio/appuio-cloud-reporting)
+[![Version](https://img.shields.io/github/v/release/appuio/appuio-cloud-reporting)][releases]
+[![Maintainability](https://img.shields.io/codeclimate/maintainability/appuio/appuio-cloud-reporting)][codeclimate]
+[![Coverage](https://img.shields.io/codeclimate/coverage/appuio/appuio-cloud-reporting)][codeclimate]
+[![GitHub downloads](https://img.shields.io/github/downloads/appuio/appuio-cloud-reporting/total)][releases]
+
+[build]: https://github.com/appuio/appuio-cloud-reporting/actions?query=workflow%3ATest
+[releases]: https://github.com/appuio/appuio-cloud-reporting/releases
+[codeclimate]: https://codeclimate.com/github/appuio/appuio-cloud-reporting
+
 ## Use APPUiO Global instance
 
 ```sh
@@ -24,11 +35,13 @@ psql -U "${DB_USER}" -w -h localhost reporting
 ## Local Installation
 
 ```sh
+make kind-setup
+export KUBECONFIG=.kind/kind-kubeconfig
 SUPERUSER_PW=$(pwgen 40 1)
 
 kubectl create ns appuio-reporting
-kubectl -nappuio-reporting create secret generic reporting-db-superuser --from-literal=user=reporting-db-superuser "--from-literal=password=${SUPERUSER_PW}"
-kubectl -nappuio-reporting apply -k manifests/base
+kubectl -n appuio-reporting create secret generic reporting-db-superuser --from-literal=user=reporting-db-superuser "--from-literal=password=${SUPERUSER_PW}"
+kubectl -n appuio-reporting apply -k manifests/base
 ```
 
 ## Usage

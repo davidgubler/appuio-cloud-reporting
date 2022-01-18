@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/appuio/appuio-cloud-reporting/pkg/db"
-	_ "github.com/appuio/appuio-cloud-reporting/pkg/db/flag"
 )
 
 func TestTimerange(t *testing.T) {
