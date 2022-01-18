@@ -12,6 +12,7 @@ import (
 //go:embed migrations/*.sql
 var migrationFiles embed.FS
 
+// Migrations returns all registered migrations.
 var Migrations = func() []interface{} {
 	m, err := loadMigrations()
 	if err != nil {
@@ -20,6 +21,7 @@ var Migrations = func() []interface{} {
 	return m
 }()
 
+// Migrate migrates the database to the newest migration.
 func Migrate(db *sql.DB) error {
 	m, err := newMigrator()
 	if err != nil {
@@ -32,6 +34,7 @@ func Migrate(db *sql.DB) error {
 	return nil
 }
 
+// Pending returns all pending migrations.
 func Pending(db *sql.DB) ([]*migrator.Migration, error) {
 	m, err := newMigrator()
 	if err != nil {

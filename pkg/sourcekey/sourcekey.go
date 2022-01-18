@@ -9,6 +9,8 @@ import (
 
 const elementSeparator = ":"
 
+// Source key represents a source key to look up dimensions objects (currently queries and products).
+// It implements the lookup logic found in https://kb.vshn.ch/appuio-cloud/references/architecture/metering-data-flow.html#_system_idea.
 type SourceKey struct {
 	Query     string
 	Zone      string
@@ -18,6 +20,7 @@ type SourceKey struct {
 	Class string
 }
 
+// Parse parses a source key in the format of "query:zone:tenant:namespace:class" or "query:zone:tenant:namespace".
 func Parse(raw string) (SourceKey, error) {
 	parts := strings.Split(raw, elementSeparator)
 	if len(parts) == 4 {
@@ -29,6 +32,7 @@ func Parse(raw string) (SourceKey, error) {
 	return SourceKey{}, fmt.Errorf("expected key with 4 to 5 elements separated by `%s` got %d", elementSeparator, len(parts))
 }
 
+// String returns the string representation "query:zone:tenant:namespace:class" of the key.
 func (k SourceKey) String() string {
 	elements := []string{k.Query, k.Zone, k.Tenant, k.Namespace}
 	if k.Class != "" {
@@ -37,6 +41,8 @@ func (k SourceKey) String() string {
 	return strings.Join(elements, elementSeparator)
 }
 
+// LookupKeys generates lookup keys for a dimension object in the database.
+// The logic is described here: https://kb.vshn.ch/appuio-cloud/references/architecture/metering-data-flow.html#_system_idea
 func (k SourceKey) LookupKeys() []string {
 	return generateSourceKeys(k.Query, k.Zone, k.Tenant, k.Namespace, k.Class)
 }

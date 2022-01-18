@@ -11,6 +11,7 @@ type NamedPreparer interface {
 	PrepareNamed(query string) (*sqlx.NamedStmt, error)
 }
 
+// GetNamed is like sqlx.Get but for named statements.
 func GetNamed(p NamedPreparer, dest interface{}, query string, arg interface{}) error {
 	st, err := p.PrepareNamed(query)
 	if err != nil {
@@ -20,6 +21,7 @@ func GetNamed(p NamedPreparer, dest interface{}, query string, arg interface{}) 
 	return st.Get(dest, arg)
 }
 
+// InfiniteRange returns an infinite PostgreSQL timerange [-Inf,Inf).
 func InfiniteRange() pgtype.Tstzrange {
 	return Timerange(MustTimestamp(pgtype.NegativeInfinity), MustTimestamp(pgtype.Infinity))
 }

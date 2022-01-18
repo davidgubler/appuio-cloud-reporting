@@ -21,6 +21,7 @@ var appuioCloudPersistentStorageQuery string
 //go:embed seeds/ping.promql
 var pingQuery string
 
+// DefaultQueries consists of default starter queries.
 var DefaultQueries = []Query{
 	{
 		Name:        "appuio_cloud_memory",
@@ -47,6 +48,8 @@ var DefaultQueries = []Query{
 	},
 }
 
+// Seed seeds the database with "starter" data.
+// Is idempotent and thus can be executed multiple times in one database.
 func Seed(db *sql.DB) error {
 	dbx := NewDBx(db)
 	tx, err := dbx.Beginx()
