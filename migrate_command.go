@@ -25,7 +25,7 @@ func newMigrateCommand() *cli.Command {
 		Flags: []cli.Flag{
 			&cli.BoolFlag{Name: "show-pending", Usage: "Shows pending migrations and exits", EnvVars: envVars("SHOW_PENDING"), Destination: &command.ShowPending},
 			&cli.BoolFlag{Name: "seed", Usage: "Seeds database with initial data and exits", EnvVars: envVars("SEED"), Destination: &command.SeedEnabled},
-			newDbUrlFlag(&command.DatabaseURL),
+			newDbURLFlag(&command.DatabaseURL),
 		},
 	}
 }

@@ -7,12 +7,12 @@ import (
 
 const defaultTestForRequiredFlags = "<required>"
 
-func newDbUrlFlag(destination *string) *cli.StringFlag {
+func newDbURLFlag(destination *string) *cli.StringFlag {
 	return &cli.StringFlag{Name: "db-url", Usage: "Database connection URL in the form of postgres://user@host:port/db-name?option=value", EnvVars: envVars("DB_URL"),
 		Destination: destination, Required: true, DefaultText: defaultTestForRequiredFlags}
 }
 
-func newPromUrlFlag(destination *string) *cli.StringFlag {
+func newPromURLFlag(destination *string) *cli.StringFlag {
 	return &cli.StringFlag{Name: "prom-url", Usage: "Prometheus connection URL in the form of http://host:port", EnvVars: envVars("PROM_URL"),
 		Destination: destination, Value: "http://localhost:9090"}
 }

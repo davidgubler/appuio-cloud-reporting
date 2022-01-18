@@ -13,7 +13,7 @@ import (
 
 type reportCommand struct {
 	DatabaseURL   string
-	PrometheusUrl string
+	PrometheusURL string
 	QueryName     string
 	Timestamp     *time.Time
 }
@@ -28,8 +28,8 @@ func newReportCommand() *cli.Command {
 		Before: command.before,
 		Action: command.execute,
 		Flags: []cli.Flag{
-			newDbUrlFlag(&command.DatabaseURL),
-			newPromUrlFlag(&command.PrometheusUrl),
+			newDbURLFlag(&command.DatabaseURL),
+			newPromURLFlag(&command.PrometheusURL),
 			&cli.StringFlag{Name: "query-name", Usage: fmt.Sprintf("Name of the query (sample values: %s)", queryNames(db.DefaultQueries)), EnvVars: envVars("QUERY_NAME"), Destination: &command.QueryName, Required: true, DefaultText: defaultTestForRequiredFlags},
 			&cli.TimestampFlag{Name: "begin", Usage: fmt.Sprintf("Beginning timestamp of the report period in the form of RFC3339 (%s)", time.RFC3339), EnvVars: envVars("BEGIN"), Layout: time.RFC3339, Required: true, DefaultText: defaultTestForRequiredFlags},
 		},
@@ -44,7 +44,7 @@ func (cmd *reportCommand) before(context *cli.Context) error {
 func (cmd *reportCommand) execute(context *cli.Context) error {
 	log := AppLogger(context).WithName(reportCommandName)
 
-	promClient, err := NewPrometheusAPIClient(cmd.PrometheusUrl)
+	promClient, err := NewPrometheusAPIClient(cmd.PrometheusURL)
 	if err != nil {
 		return fmt.Errorf("could not create prometheus client: %w", err)
 	}
@@ -72,9 +72,9 @@ func (cmd *reportCommand) execute(context *cli.Context) error {
 	return tx.Commit()
 }
 
-func NewPrometheusAPIClient(promUrl string) (apiv1.API, error) {
+func NewPrometheusAPIClient(promURL string) (apiv1.API, error) {
 	client, err := api.NewClient(api.Config{
-		Address: promUrl,
+		Address: promURL,
 	})
 	return apiv1.NewAPI(client), err
 }
