@@ -18,7 +18,7 @@ import (
 var DatabaseURL = urlFromEnv()
 
 // Suite holds a database test suite. Each Suite holds its own clone of
-// the database given by `-db-url` or the `DB_URL` environment variable.
+// the database given by `-db-url` or the `ACR_DB_URL` environment variable.
 // The database is cloned before the suite starts and dropped in the suite teardown.
 // Suites can be run in parallel.
 type Suite struct {
@@ -109,7 +109,7 @@ func openMaintenance(dbURL string) (*sqlx.DB, error) {
 }
 
 func urlFromEnv() string {
-	if u, exists := os.LookupEnv("DB_URL"); exists {
+	if u, exists := os.LookupEnv("ACR_DB_URL"); exists {
 		return u
 	}
 	return "postgres://postgres@localhost/reporting-db?sslmode=disable"

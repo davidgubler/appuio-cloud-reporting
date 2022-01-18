@@ -36,7 +36,7 @@ ensure-prometheus:
 	go run ./util/ensure_prometheus
 
 .PHONY: test
-test: export DB_URL = postgres://test-migrations:test-migrations@localhost:65432/test-migrations?sslmode=disable
+test: export ACR_DB_URL = postgres://test-migrations:test-migrations@localhost:65432/test-migrations?sslmode=disable
 test: ensure-prometheus
 	docker rm -f test-migrations ||:
 	docker run -d --name test-migrations -e POSTGRES_DB=test-migrations -e POSTGRES_USER=test-migrations -e POSTGRES_PASSWORD=test-migrations -p65432:5432 postgres:13-bullseye
