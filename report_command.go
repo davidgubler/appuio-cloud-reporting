@@ -30,8 +30,10 @@ func newReportCommand() *cli.Command {
 		Flags: []cli.Flag{
 			newDbURLFlag(&command.DatabaseURL),
 			newPromURLFlag(&command.PrometheusURL),
-			&cli.StringFlag{Name: "query-name", Usage: fmt.Sprintf("Name of the query (sample values: %s)", queryNames(db.DefaultQueries)), EnvVars: envVars("QUERY_NAME"), Destination: &command.QueryName, Required: true, DefaultText: defaultTestForRequiredFlags},
-			&cli.TimestampFlag{Name: "begin", Usage: fmt.Sprintf("Beginning timestamp of the report period in the form of RFC3339 (%s)", time.RFC3339), EnvVars: envVars("BEGIN"), Layout: time.RFC3339, Required: true, DefaultText: defaultTestForRequiredFlags},
+			&cli.StringFlag{Name: "query-name", Usage: fmt.Sprintf("Name of the query (sample values: %s)", queryNames(db.DefaultQueries)),
+				EnvVars: envVars("QUERY_NAME"), Destination: &command.QueryName, Required: true, DefaultText: defaultTestForRequiredFlags},
+			&cli.TimestampFlag{Name: "begin", Usage: fmt.Sprintf("Beginning timestamp of the report period in the form of RFC3339 (%s)", time.RFC3339),
+				EnvVars: envVars("BEGIN"), Layout: time.RFC3339, Required: true, DefaultText: defaultTestForRequiredFlags},
 		},
 	}
 }
