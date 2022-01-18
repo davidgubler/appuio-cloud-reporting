@@ -16,6 +16,7 @@ import (
 )
 
 const (
+	// Version represents the Prometheus server version used in the testsuite.
 	Version = "2.32.1"
 
 	baseFileNameTmplStr = "prometheus-{{.Version}}.{{.GOOS}}-{{.GOARCH}}"

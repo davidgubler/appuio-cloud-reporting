@@ -14,6 +14,8 @@ import (
 	"github.com/appuio/appuio-cloud-reporting/pkg/db/dbtest"
 )
 
+// Suite holds a dbtest.Suite and a lazily started prometheus server.
+// Each Suite holds its own Prometheus server. Suites can be run in parallel.
 type Suite struct {
 	dbtest.Suite
 
@@ -49,7 +51,7 @@ func (ts *Suite) PrometheusURL() string {
 	return url
 }
 
-// PrometheusClient starts a prometheus server and returns a client to it.
+// PrometheusAPIClient starts a prometheus server and returns a client to it.
 // The started prometheus is shared in a testsuite.
 func (ts *Suite) PrometheusAPIClient() apiv1.API {
 	client, err := api.NewClient(api.Config{Address: ts.PrometheusURL()})
@@ -57,6 +59,7 @@ func (ts *Suite) PrometheusAPIClient() apiv1.API {
 	return apiv1.NewAPI(client)
 }
 
+// TearDownSuite stops prometheus and drops the temporary database.
 func (ts *Suite) TearDownSuite() {
 	ts.Suite.TearDownSuite()
 

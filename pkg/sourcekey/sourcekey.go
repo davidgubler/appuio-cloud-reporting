@@ -9,7 +9,7 @@ import (
 
 const elementSeparator = ":"
 
-// Source key represents a source key to look up dimensions objects (currently queries and products).
+// SourceKey represents a source key to look up dimensions objects (currently queries and products).
 // It implements the lookup logic found in https://kb.vshn.ch/appuio-cloud/references/architecture/metering-data-flow.html#_system_idea.
 type SourceKey struct {
 	Query     string

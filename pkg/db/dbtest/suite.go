@@ -18,7 +18,7 @@ import (
 var DatabaseURL = urlFromEnv()
 
 // Suite holds a database test suite. Each Suite holds its own clone of
-// the database given by `-db-url` or the `ACR_DB_URL` environment variable.
+// the database given by the `ACR_DB_URL` environment variable.
 // The database is cloned before the suite starts and dropped in the suite teardown.
 // Suites can be run in parallel.
 type Suite struct {
