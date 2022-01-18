@@ -1,0 +1,12 @@
+# Ping is a query that always returns `42` for `ping-product:ping-cluster:ping-tenant:ping-namespace`.
+
+label_replace(
+  label_replace(
+    label_replace(
+      vector(42),
+      "category", "ping-cluster:ping-namespace", "", ""
+    ),
+    "product", "ping-product:ping-cluster:ping-tenant:ping-namespace", "", ""
+  ),
+  "tenant", "ping-tenant", "", ""
+)

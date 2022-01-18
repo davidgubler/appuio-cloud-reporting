@@ -14,8 +14,6 @@ include Makefile.vars.mk
 # Following includes do not print warnings or error if files aren't found
 # Optional Documentation module.
 -include docs/antora-preview.mk docs/antora-build.mk
-# Optional kind module
--include kind/kind.mk
 
 .PHONY: help
 help: ## Show this help
@@ -33,21 +31,19 @@ build-bin: fmt vet ## Build binary
 build-docker: build-bin ## Build docker image
 	$(DOCKER_CMD) build -t $(CONTAINER_IMG) .
 
+.PHONY: ensure-prometheus
+ensure-prometheus:
+	go run ./util/ensure_prometheus
+
 .PHONY: test
-test: test-go test-integration ## All-in-one test
-
-.PHONY: test-go
-test-go: ## Run unit tests against code
-	go test -race -coverprofile cover.out -covermode atomic ./...
-
-.PHONY: test-integration
-test-integration: ## Run integration tests with background services
+test: export ACR_DB_URL = postgres://test-migrations:test-migrations@localhost:65432/test-migrations?sslmode=disable
+test: ensure-prometheus
 	docker rm -f test-migrations ||:
 	docker run -d --name test-migrations -e POSTGRES_DB=test-migrations -e POSTGRES_USER=test-migrations -e POSTGRES_PASSWORD=test-migrations -p65432:5432 postgres:13-bullseye
 	docker exec -t test-migrations sh -c 'until pg_isready; do sleep 1; done; sleep 1'
-	go run ./cmd/migrate '-db-url=postgres://test-migrations:test-migrations@localhost:65432/test-migrations?sslmode=disable'
-	go test ./... -tags integration -args '-db-url=postgres://test-migrations:test-migrations@localhost:65432/test-migrations?sslmode=disable'
-	go run ./cmd/testreport '-db-url=postgres://test-migrations:test-migrations@localhost:65432/test-migrations?sslmode=disable'
+	go run github.com/appuio/appuio-cloud-reporting migrate
+	go run github.com/appuio/appuio-cloud-reporting migrate --seed
+	go test ./... -tags integration -coverprofile cover.out -covermode atomic
 	docker rm -f test-migrations
 
 .PHONY: fmt

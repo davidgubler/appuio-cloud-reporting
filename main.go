@@ -23,7 +23,7 @@ var (
 	appLongName = "Reporting for APPUiO Cloud"
 
 	// envPrefix is the global prefix to use for the keys in environment variables
-	envPrefix = ""
+	envPrefix = "ACR"
 )
 
 func main() {
@@ -65,7 +65,7 @@ func newApp() (context.Context, context.CancelFunc, *cli.App) {
 		},
 		Commands: []*cli.Command{
 			newMigrateCommand(),
-			newTestReportCommand(),
+			newReportCommand(),
 		},
 		ExitErrHandler: func(context *cli.Context, err error) {
 			if err != nil {
@@ -74,23 +74,12 @@ func newApp() (context.Context, context.CancelFunc, *cli.App) {
 			}
 		},
 	}
-	hasSubcommands := len(app.Commands) > 0
-	app.Action = rootAction(hasSubcommands)
 	// There is logr.NewContext(...) which returns a context that carries the logger instance.
 	// However, since we are configuring and replacing this logger after starting up and parsing the flags,
 	// we'll store a thread-safe atomic reference.
 	parentCtx := context.WithValue(context.Background(), loggerContextKey{}, logInstance)
 	ctx, stop := signal.NotifyContext(parentCtx, syscall.SIGINT, syscall.SIGTERM)
 	return ctx, stop, app
-}
-
-func rootAction(hasSubcommands bool) func(context *cli.Context) error {
-	return func(context *cli.Context) error {
-		if hasSubcommands {
-			return cli.ShowAppHelp(context)
-		}
-		return LogMetadata(context)
-	}
 }
 
 // env combines envPrefix with given suffix delimited by underscore.

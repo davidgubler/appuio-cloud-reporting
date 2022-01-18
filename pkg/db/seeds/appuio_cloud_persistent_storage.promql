@@ -1,0 +1,64 @@
+# Add the final product label by joining the base product with the cluster id, the tenant and the namespace.
+label_join(
+  # Add the category label by joining the cluster id and the namespace.
+  label_join(
+    # Add the base product identifier.
+    label_replace(
+      clamp_min(
+        sum by(cluster_id, tenant_id, namespace, storageclass)(
+          # Get the PersistentVolume size
+          sum_over_time(kube_persistentvolume_capacity_bytes[59m])
+          *
+          # Join the PersistentVolumeClaim to get the namespace
+          on (persistentvolume)
+          group_left(namespace, name)
+          label_replace(
+            kube_persistentvolume_claim_ref,
+            "namespace",
+            "$1",
+            "claim_namespace",
+            "(.+)(-.*)?"
+          )
+          *
+          # Join the PersistentVolume info to get StorageClass
+          on (persistentvolume)
+          group_left(storageclass)
+          # Do not differantiate between regular and encrypted storage class versions.
+          label_replace(
+            kube_persistentvolume_info,
+            "storageclass",
+            "$1",
+            "storageclass",
+            "([^-]+)-encrypted"
+          )
+          *
+          # Join the namespace label to get the tenant
+          on(namespace)
+          group_left(tenant_id)
+          label_replace(
+            kube_namespace_labels{label_appuio_io_organization=~".+"},
+            "tenant_id",
+            "$1",
+            "label_appuio_io_organization", "(.*)"
+          )
+        ),
+        1024 * 1024 * 1024
+      ),
+      "product",
+      "appuio_cloud_persistent_storage",
+      "product",
+      ".*"
+    ),
+    "category",
+    ":",
+    "cluster_id",
+    "namespace"
+  ),
+  "product",
+  ":",
+  "product",
+  "storageclass",
+  "cluster_id",
+  "tenant_id",
+  "namespace"
+)

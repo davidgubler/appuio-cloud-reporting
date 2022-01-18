@@ -10,6 +10,7 @@ import (
 type migrateCommand struct {
 	ShowPending bool
 	DatabaseURL string
+	SeedEnabled bool
 }
 
 var migrateCommandName = "migrate"
@@ -22,8 +23,9 @@ func newMigrateCommand() *cli.Command {
 		Before: command.before,
 		Action: command.execute,
 		Flags: []cli.Flag{
-			&cli.BoolFlag{Name: "show-pending", Usage: "Shows pending migrations and exits", EnvVars: envVars("SHOW_PENDING"), Value: false, Destination: &command.ShowPending},
-			&cli.StringFlag{Name: "db-url", Usage: "Database connection URL in the form of postgres://user@host:port/db-name?option=value", EnvVars: envVars("DB_URL"), Destination: &command.DatabaseURL, Required: true},
+			&cli.BoolFlag{Name: "show-pending", Usage: "Shows pending migrations and exits", EnvVars: envVars("SHOW_PENDING"), Destination: &command.ShowPending},
+			&cli.BoolFlag{Name: "seed", Usage: "Seeds database with initial data and exits", EnvVars: envVars("SEED"), Destination: &command.SeedEnabled},
+			newDbURLFlag(&command.DatabaseURL),
 		},
 	}
 }
@@ -40,6 +42,16 @@ func (cmd *migrateCommand) execute(context *cli.Context) error {
 		return fmt.Errorf("could not open database connection: %w", err)
 	}
 
+	if cmd.SeedEnabled {
+		log.V(1).Info("Seeding DB...")
+		err := db.Seed(rdb)
+		if err != nil {
+			return fmt.Errorf("error seeding database: %w", err)
+		}
+		log.Info("Done seeding")
+		return nil
+	}
+
 	if cmd.ShowPending {
 		log.V(1).Info("Showing pending DB migrations")
 		pm, err := db.Pending(rdb)
@@ -50,7 +62,8 @@ func (cmd *migrateCommand) execute(context *cli.Context) error {
 		for _, p := range pm {
 			fmt.Println(p.Name)
 		}
-		return nil
+		// non-zero exit code could be used in scripts
+		return cli.Exit("", 1)
 	}
 
 	log.V(1).Info("Start DB migrations")

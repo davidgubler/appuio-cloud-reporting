@@ -1,0 +1,35 @@
+# Add the final product label by joining the base product with the cluster id, the tenant and the namespace.
+label_join(
+  # Add the category label by joining the cluster id and the namespace.
+  label_join(
+    # Add the base product identifier.
+    label_replace(
+      # Get number of services of type load balancer
+      sum by(cluster_id, namespace) (sum_over_time(kube_service_spec_type{type="LoadBalancer"}[59m]))
+      *
+      # Join the namespace label to get the tenant
+      on(cluster_id, namespace)
+      group_left(tenant_id)
+      label_replace(
+        kube_namespace_labels{label_appuio_io_organization=~".+"},
+        "tenant_id",
+        "$1",
+        "label_appuio_io_organization", "(.*)"
+      ),
+      "product",
+      "appuio_cloud_loadbalancer",
+      "product",
+      ".*"
+    ),
+    "category",
+    ":",
+    "cluster_id",
+    "namespace"
+  ),
+  "product",
+  ":",
+  "product",
+  "cluster_id",
+  "tenant_id",
+  "namespace"
+)
