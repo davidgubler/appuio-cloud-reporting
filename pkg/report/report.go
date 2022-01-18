@@ -50,10 +50,6 @@ func processSample(tx *sqlx.Tx, ts time.Time, query db.Query, s *model.Sample) e
 	if err != nil {
 		return err
 	}
-	tenant, err := getMetricLabel(s.Metric, "tenant")
-	if err != nil {
-		return err
-	}
 	productLabel, err := getMetricLabel(s.Metric, "product")
 	if err != nil {
 		return err
@@ -67,10 +63,10 @@ func processSample(tx *sqlx.Tx, ts time.Time, query db.Query, s *model.Sample) e
 	var upsertedTenant db.Tenant
 	err = db.GetNamed(tx, &upsertedTenant,
 		"INSERT INTO tenants (source) VALUES (:source) ON CONFLICT (source) DO UPDATE SET source = :source RETURNING *", db.Tenant{
-			Source: string(tenant),
+			Source: skey.Tenant,
 		})
 	if err != nil {
-		return fmt.Errorf("failed to upsert tenant '%s': %w", tenant, err)
+		return fmt.Errorf("failed to upsert tenant '%s': %w", skey.Tenant, err)
 	}
 
 	var upsertedCategory db.Category
@@ -79,7 +75,7 @@ func processSample(tx *sqlx.Tx, ts time.Time, query db.Query, s *model.Sample) e
 			Source: string(category),
 		})
 	if err != nil {
-		return fmt.Errorf("failed to upsert category '%s': %w", tenant, err)
+		return fmt.Errorf("failed to upsert category '%s': %w", category, err)
 	}
 
 	sourceLookup := skey.LookupKeys()
