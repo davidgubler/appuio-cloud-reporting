@@ -57,8 +57,8 @@ label_join(
   "product",
   ":",
   "product",
-  "storageclass",
   "cluster_id",
   "tenant_id",
-  "namespace"
+  "namespace",
+  "storageclass"
 )
