@@ -3,10 +3,12 @@ package report
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/appuio/appuio-cloud-reporting/pkg/db"
 	"github.com/appuio/appuio-cloud-reporting/pkg/sourcekey"
+	"github.com/jackc/pgx/v4"
 	"github.com/jmoiron/sqlx"
 	apiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
@@ -83,38 +85,12 @@ func processSample(tx *sqlx.Tx, ts time.Time, query db.Query, s *model.Sample) e
 	sourceLookup := skey.LookupKeys()
 
 	var product db.Product
-	err = sqlx.Get(tx, &product,
-		`WITH keys AS (
-				SELECT row_number() over () AS prio, unnest as key
-				FROM unnest($1::text[])
-			)
-			SELECT products.*
-				FROM products
-				INNER JOIN keys ON (keys.key = products.source)
-				WHERE during @> $2::timestamptz
-				ORDER BY prio
-				LIMIT 1`,
-		sourceLookup, ts,
-	)
-	if err != nil {
+	if err := getBySourceKeyAndTime(tx, &product, pgx.Identifier{"products"}, sourceLookup, ts); err != nil {
 		return fmt.Errorf("failed to load product for '%s': %w", productLabel, err)
 	}
 
 	var discount db.Discount
-	err = sqlx.Get(tx, &discount,
-		`WITH keys AS (
-			SELECT row_number() over () AS prio, unnest as key
-			FROM unnest($1::text[])
-		)
-		SELECT discounts.*
-			FROM discounts
-			INNER JOIN keys ON (keys.key = discounts.source)
-			WHERE during @> $2::timestamptz
-			ORDER BY prio
-			LIMIT 1`,
-		sourceLookup, ts,
-	)
-	if err != nil {
+	if err := getBySourceKeyAndTime(tx, &discount, pgx.Identifier{"discounts"}, sourceLookup, ts); err != nil {
 		return fmt.Errorf("failed to load discount for '%s': %w", productLabel, err)
 	}
 
@@ -146,6 +122,26 @@ func processSample(tx *sqlx.Tx, ts time.Time, query db.Query, s *model.Sample) e
 	}
 
 	return nil
+}
+
+// getBySourceKeyAndTime gets the first record matching a key in keys while preserving the priority or order of the keys.
+// The first key has the highest priority while the last key has the lowest priority.
+// If keys are [a,b,c] and records [a,c] exist a is chosen.
+func getBySourceKeyAndTime(q sqlx.Queryer, dest interface{}, table pgx.Identifier, keys []string, ts time.Time) error {
+	const query = `WITH keys AS (
+		-- add a priority to keep track of which key match we should choose
+		-- first key -> prio 1, third key -> prio 3
+		SELECT row_number() over () AS prio, unnest as key
+		-- unpack the given array of strings into rows
+		FROM unnest($1::text[])
+	)
+	SELECT {{table}}.*
+		FROM {{table}}
+		INNER JOIN keys ON (keys.key = {{table}}.source)
+		WHERE during @> $2::timestamptz
+		ORDER BY prio
+		LIMIT 1`
+	return sqlx.Get(q, dest, strings.ReplaceAll(query, "{{table}}", table.Sanitize()), keys, ts)
 }
 
 func upsertFact(tx *sqlx.Tx, dst *db.Fact, src db.Fact) error {
