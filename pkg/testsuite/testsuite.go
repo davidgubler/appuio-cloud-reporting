@@ -41,6 +41,7 @@ func (ts *Suite) PrometheusURL() string {
 	url := fmt.Sprintf("http://127.0.0.1:%d", port)
 
 	ts.promCtx, ts.promCancelCtx = context.WithCancel(context.Background())
+	ts.Require().FileExists(PromBin, "Prometheus binary is required to run tests. Download with `make ensure-prometheus`")
 	wait, err := StartPrometheus(ts.promCtx, port)
 	require.NoError(ts.T(), err)
 	ts.promWaitShutdown = wait
@@ -85,7 +86,7 @@ func waitForPrometheusReady(ctx context.Context, url string, timeout time.Durati
 		if err == nil {
 			break
 		} else if timeoutCtx.Err() != nil {
-			return fmt.Errorf("failed waiting for prometheus to beecome ready,last error: %w", err)
+			return fmt.Errorf("failed waiting for prometheus to become ready, last error: %w", err)
 		}
 		time.Sleep(50 * time.Millisecond)
 	}

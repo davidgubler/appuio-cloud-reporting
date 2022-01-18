@@ -25,10 +25,10 @@ kubectl --as=cluster-admin -n appuio-thanos port-forward svc/thanos-query 9090 &
 DB_USER=$(kubectl -n appuio-reporting get secret/reporting-db-superuser -o jsonpath='{.data.user}' | base64 --decode)
 DB_PASSWORD=$(kubectl -n appuio-reporting get secret/reporting-db-superuser -o jsonpath='{.data.password}' | base64 --decode)
 export ACR_DB_URL="postgres://${DB_USER}:${DB_PASSWORD}@localhost/reporting?sslmode=disable"
-go run github.com/appuio/appuio-cloud-reporting migrate --show-pending
+go run . migrate --show-pending
 
 # Run a query
-go run github.com/appuio/appuio-cloud-reporting report --query-name ping --begin "2022-01-17T09:00:00Z"
+go run . report --query-name ping --begin "2022-01-17T09:00:00Z"
 
 # Connect to the database's interactive terminal
 DB_USER=$(kubectl -n appuio-reporting get secret/reporting-db-superuser -o jsonpath='{.data.user}' | base64 --decode)
@@ -58,7 +58,7 @@ DB_USER=$(kubectl -n appuio-reporting get secret/reporting-db-superuser -o jsonp
 DB_PASSWORD=$(kubectl -n appuio-reporting get secret/reporting-db-superuser -o jsonpath='{.data.password}' | base64 --decode)
 export ACR_DB_URL="postgres://${DB_USER}:${DB_PASSWORD}@localhost/reporting?sslmode=disable"
 
-go run github.com/appuio/appuio-cloud-reporting report --query-name ping --begin "2022-01-17T09:00:00Z"
+go run . report --query-name ping --begin "2022-01-17T09:00:00Z"
 ```
 
 ### Migrate to Most Recent Schema
@@ -70,9 +70,9 @@ DB_USER=$(kubectl -n appuio-reporting get secret/reporting-db-superuser -o jsonp
 DB_PASSWORD=$(kubectl -n appuio-reporting get secret/reporting-db-superuser -o jsonpath='{.data.password}' | base64 --decode)
 export ACR_DB_URL="postgres://${DB_USER}:${DB_PASSWORD}@localhost/reporting?sslmode=disable"
 
-go run github.com/appuio/appuio-cloud-reporting migrate --show-pending
+go run . migrate --show-pending
 
-go run github.com/appuio/appuio-cloud-reporting migrate
+go run . migrate
 ```
 
 ### Connect to the Database
@@ -94,8 +94,8 @@ Local development assumes a locally installed PostgreSQL database.
 createdb appuio-cloud-reporting-test
 export ACR_DB_URL="postgres://localhost/appuio-cloud-reporting-test?sslmode=disable"
 
-go run github.com/appuio/appuio-cloud-reporting migrate
-go run github.com/appuio/appuio-cloud-reporting migrate --seed
+go run . migrate
+go run . migrate --seed
 go test ./...
 ```
 

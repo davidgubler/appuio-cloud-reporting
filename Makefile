@@ -32,8 +32,7 @@ build-docker: build-bin ## Build docker image
 	$(DOCKER_CMD) build -t $(CONTAINER_IMG) .
 
 .PHONY: ensure-prometheus
-ensure-prometheus:
-	go run ./util/ensure_prometheus
+ensure-prometheus: .cache/prometheus ## Ensures that Prometheus is installed in the project dir. Downloads it if necessary.
 
 .PHONY: test
 test: export ACR_DB_URL = postgres://test-migrations:test-migrations@localhost:65432/test-migrations?sslmode=disable
@@ -66,3 +65,10 @@ generate: ## Generate additional code and artifacts
 .PHONY: clean
 clean: ## Cleans local build artifacts
 	rm -rf docs/node_modules $(docs_out_dir) dist .cache
+
+.cache/prometheus:
+	mkdir -p .cache
+	curl -fsSLo .cache/prometheus.tar.gz $(PROMETHEUS_DOWNLOAD_LINK)
+	tar -xzf .cache/prometheus.tar.gz -C .cache
+	mv .cache/prometheus-$(PROMETHEUS_VERSION).$(PROMETHEUS_DIST)-$(PROMETHEUS_ARCH) .cache/prometheus
+	rm -rf .cache/*.tar.gz
