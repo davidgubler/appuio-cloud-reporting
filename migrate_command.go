@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/appuio/appuio-cloud-reporting/pkg/db"
 	"github.com/urfave/cli/v2"
@@ -62,8 +63,12 @@ func (cmd *migrateCommand) execute(context *cli.Context) error {
 		for _, p := range pm {
 			fmt.Println(p.Name)
 		}
+
 		// non-zero exit code could be used in scripts
-		return cli.Exit("", 1)
+		if len(pm) > 0 {
+			os.Exit(1)
+		}
+		return nil
 	}
 
 	log.V(1).Info("Start DB migrations")
