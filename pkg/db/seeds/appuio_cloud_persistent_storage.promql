@@ -62,3 +62,5 @@ label_join(
   "namespace",
   "storageclass"
 )
+# Convert to GiB
+/ 1024 / 1024 / 1024

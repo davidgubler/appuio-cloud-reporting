@@ -69,7 +69,8 @@ func newApp() (context.Context, context.CancelFunc, *cli.App) {
 		},
 		ExitErrHandler: func(context *cli.Context, err error) {
 			if err != nil {
-				AppLogger(context).WithCallDepth(1).Error(err, "fatal error")
+				AppLogger(context.Context).WithCallDepth(1).Error(err, "fatal error")
+				os.Exit(1)
 				cli.HandleExitCoder(cli.Exit("", 1))
 			}
 		},

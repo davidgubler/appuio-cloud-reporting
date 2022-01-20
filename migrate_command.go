@@ -36,7 +36,7 @@ func (cmd *migrateCommand) before(ctx *cli.Context) error {
 }
 
 func (cmd *migrateCommand) execute(context *cli.Context) error {
-	log := AppLogger(context).WithName(migrateCommandName)
+	log := AppLogger(context.Context).WithName(migrateCommandName)
 	log.V(1).Info("Opening database connection", "url", cmd.DatabaseURL)
 	rdb, err := db.Open(cmd.DatabaseURL)
 	if err != nil {

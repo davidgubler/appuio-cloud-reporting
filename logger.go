@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 	"runtime"
@@ -16,15 +17,15 @@ import (
 
 type loggerContextKey struct{}
 
-// AppLogger retrieves the application-wide logger instance from the cli.Context.
-func AppLogger(c *cli.Context) logr.Logger {
-	return c.Context.Value(loggerContextKey{}).(*atomic.Value).Load().(logr.Logger)
+// AppLogger retrieves the application-wide logger instance from the context.Context.
+func AppLogger(c context.Context) logr.Logger {
+	return c.Value(loggerContextKey{}).(*atomic.Value).Load().(logr.Logger)
 }
 
 // LogMetadata prints various metadata to the root logger.
 // It prints version, architecture and current user ID and returns nil.
 func LogMetadata(c *cli.Context) error {
-	logger := AppLogger(c)
+	logger := AppLogger(c.Context)
 	if !usesProductionLoggingConfig(c) {
 		logger = logger.WithValues("version", version)
 	}

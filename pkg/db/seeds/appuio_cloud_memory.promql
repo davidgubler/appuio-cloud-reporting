@@ -13,7 +13,7 @@ label_join(
             sum by(cluster_id, namespace) (
               # Average over a one minute time frame.
           # NOTE: This is a sliding window. Results vary based on the time the query is executed.
-              sum_over_time(avg_over_time(container_memory_working_set_bytes{image!=""}[59m])[59h:1m])
+              sum_over_time(avg_over_time(container_memory_working_set_bytes{image!=""}[1m])[59m:1m])
             )
             # IMPORTANT: one clause must use equal. If used grater and lesser than, equal values will be dropped.
             >=
@@ -24,7 +24,7 @@ label_join(
           (
             sum by(cluster_id, namespace) (
               # Average over a one minute time frame.
-              sum_over_time(avg_over_time(container_memory_working_set_bytes{image!=""}[1m])[1h:1m])
+              sum_over_time(avg_over_time(container_memory_working_set_bytes{image!=""}[1m])[59m:1m])
             )
             <
             sum by(cluster_id, namespace) (kube_pod_container_resource_requests{resource="memory"})
