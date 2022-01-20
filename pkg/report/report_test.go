@@ -1,6 +1,7 @@
 package report_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -76,6 +77,39 @@ func (s *ReportSuite) TestReport_RunReportCreatesFact() {
 	require.NoError(t, report.Run(tx, prom, query.Name, ts))
 	fact := s.requireFactForQueryIdAndProductSource(tx, query, "my-product:my-cluster", ts)
 	require.Equal(t, float64(defaultQueryReturnValue), fact.Quantity)
+}
+
+func (s *ReportSuite) TestReport_RunReportNonLockingUpsert() {
+	t := s.T()
+	prom := s.PrometheusAPIClient()
+	query := s.sampleQuery
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	defer s.DB().Exec("DELETE FROM facts")
+
+	tx, err := s.DB().Beginx()
+	require.NoError(t, err)
+	defer tx.Rollback()
+
+	tx1, err := s.DB().BeginTxx(ctx, nil)
+	require.NoError(t, err)
+	defer tx1.Rollback()
+
+	tx2, err := s.DB().BeginTxx(ctx, nil)
+	require.NoError(t, err)
+	defer tx2.Rollback()
+
+	baseTime := time.Date(2020, time.January, 23, 17, 0, 0, 0, time.UTC)
+	require.NoError(t, report.Run(tx, prom, query.Name, baseTime))
+	require.NoError(t, tx.Commit())
+
+	require.NoError(t, report.Run(tx1, prom, query.Name, baseTime.Add(1*time.Hour)), "transaction should not be blocked on upsert")
+	require.NoError(t, report.Run(tx2, prom, query.Name, baseTime.Add(2*time.Hour)), "transaction should not be blocked on upsert")
+
+	require.NoError(t, tx2.Commit(), "transaction should not be blocked on commit")
+	require.NoError(t, tx1.Commit(), "transaction should not be blocked on commit")
 }
 
 func (s *ReportSuite) TestReport_RerunReportUpdatesFactQuantity() {

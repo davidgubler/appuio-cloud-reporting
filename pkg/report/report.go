@@ -61,21 +61,13 @@ func processSample(tx *sqlx.Tx, ts time.Time, query db.Query, s *model.Sample) e
 	}
 
 	var upsertedTenant db.Tenant
-	err = db.GetNamed(tx, &upsertedTenant,
-		"INSERT INTO tenants (source) VALUES (:source) ON CONFLICT (source) DO UPDATE SET source = :source RETURNING *", db.Tenant{
-			Source: skey.Tenant,
-		})
-	if err != nil {
-		return fmt.Errorf("failed to upsert tenant '%s': %w", skey.Tenant, err)
+	if upsertTenant(tx, &upsertedTenant, db.Tenant{Source: skey.Tenant}); err != nil {
+		return err
 	}
 
 	var upsertedCategory db.Category
-	err = db.GetNamed(tx, &upsertedCategory,
-		"INSERT INTO categories (source) VALUES (:source) ON CONFLICT (source) DO UPDATE SET source = :source RETURNING *", db.Category{
-			Source: string(category),
-		})
-	if err != nil {
-		return fmt.Errorf("failed to upsert category '%s': %w", category, err)
+	if err := upsertCategory(tx, &upsertedCategory, db.Category{Source: string(category)}); err != nil {
+		return err
 	}
 
 	sourceLookup := skey.LookupKeys()
@@ -91,14 +83,13 @@ func processSample(tx *sqlx.Tx, ts time.Time, query db.Query, s *model.Sample) e
 	}
 
 	var upsertedDateTime db.DateTime
-	err = db.GetNamed(tx, &upsertedDateTime,
-		"INSERT INTO date_times (timestamp,year,month,day,hour) VALUES (:timestamp,:year,:month,:day,:hour) ON CONFLICT (year,month,day,hour) DO UPDATE SET timestamp = :timestamp RETURNING *", db.DateTime{
-			Timestamp: ts,
-			Year:      ts.Year(),
-			Month:     int(ts.Month()),
-			Day:       ts.Day(),
-			Hour:      ts.Hour(),
-		})
+	err = upsertDateTime(tx, &upsertedDateTime, db.DateTime{
+		Timestamp: ts,
+		Year:      ts.Year(),
+		Month:     int(ts.Month()),
+		Day:       ts.Day(),
+		Hour:      ts.Hour(),
+	})
 	if err != nil {
 		return fmt.Errorf("failed to upsert date_time '%s': %w", ts.Format(time.RFC3339), err)
 	}
@@ -152,6 +143,63 @@ func upsertFact(tx *sqlx.Tx, dst *db.Fact, src db.Fact) error {
 		src)
 	if err != nil {
 		return fmt.Errorf("failed to upsert fact %+v: %w", src, err)
+	}
+	return nil
+}
+
+func upsertCategory(tx *sqlx.Tx, dst *db.Category, src db.Category) error {
+	err := db.GetNamed(tx, dst,
+		`WITH
+				existing AS (
+					SELECT * FROM categories WHERE source = :source
+				),
+				inserted AS (
+					INSERT INTO categories (source)
+					SELECT :source WHERE NOT EXISTS (SELECT 1 FROM existing)
+					RETURNING *
+				)
+			SELECT * FROM inserted UNION ALL SELECT * FROM existing`,
+		src)
+	if err != nil {
+		return fmt.Errorf("failed to upsert category %+v: %w", src, err)
+	}
+	return nil
+}
+
+func upsertTenant(tx *sqlx.Tx, dst *db.Tenant, src db.Tenant) error {
+	err := db.GetNamed(tx, dst,
+		`WITH
+				existing AS (
+					SELECT * FROM tenants WHERE source = :source
+				),
+				inserted AS (
+					INSERT INTO tenants (source)
+					SELECT :source WHERE NOT EXISTS (SELECT 1 FROM existing)
+					RETURNING *
+				)
+			SELECT * FROM inserted UNION ALL SELECT * FROM existing`,
+		src)
+	if err != nil {
+		return fmt.Errorf("failed to upsert tenant %+v: %w", src, err)
+	}
+	return nil
+}
+
+func upsertDateTime(tx *sqlx.Tx, dst *db.DateTime, src db.DateTime) error {
+	err := db.GetNamed(tx, dst,
+		`WITH
+		existing AS (
+			SELECT * FROM date_times WHERE year = :year AND month = :month AND day = :day AND hour = :hour
+		),
+		inserted AS (
+			INSERT INTO date_times (timestamp, year, month, day, hour)
+			SELECT :timestamp, :year, :month, :day, :hour WHERE NOT EXISTS (SELECT 1 FROM existing)
+			RETURNING *
+		)
+		SELECT * FROM inserted UNION ALL SELECT * FROM existing`,
+		src)
+	if err != nil {
+		return fmt.Errorf("failed to upsert date_time %+v: %w", src, err)
 	}
 	return nil
 }
