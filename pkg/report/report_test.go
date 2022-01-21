@@ -75,7 +75,7 @@ func (s *ReportSuite) TestReport_ReturnsErrorIfTimestampContainsUnitsSmallerOneH
 
 	baseTime := time.Date(2020, time.January, 23, 17, 0, 0, 0, time.UTC)
 	for _, d := range []time.Duration{time.Minute, time.Second, time.Nanosecond} {
-		require.Error(t, report.Run(tx, prom, query.Name, baseTime.Add(d)))
+		require.Error(t, report.Run(context.Background(), tx, prom, query.Name, baseTime.Add(d)))
 	}
 }
 
@@ -89,10 +89,22 @@ func (s *ReportSuite) TestReport_RunRange() {
 
 	defer tdb.Exec("DELETE FROM facts")
 
-	ts := time.Date(2020, time.January, 23, 17, 0, 0, 0, time.UTC)
-	c, err := report.RunRange(tdb, prom, query.Name, ts, ts.Add(hoursToCalculate*time.Hour))
+	base := time.Date(2020, time.January, 23, 17, 0, 0, 0, time.UTC)
+
+	expectedProgress := []report.Progress{
+		{base.Add(0 * time.Hour), 1},
+		{base.Add(1 * time.Hour), 2},
+		{base.Add(2 * time.Hour), 3},
+	}
+
+	progress := make([]report.Progress, 0)
+
+	c, err := report.RunRange(context.Background(), tdb, prom, query.Name, base, base.Add(hoursToCalculate*time.Hour),
+		report.WithProgressReporter(func(p report.Progress) { progress = append(progress, p) }),
+	)
 	require.NoError(t, err)
 	require.Equal(t, hoursToCalculate, c)
+	require.Equal(t, expectedProgress, progress)
 
 	var factCount int
 	require.NoError(t, sqlx.Get(tdb, &factCount, "SELECT COUNT(*) FROM facts"))
@@ -109,7 +121,7 @@ func (s *ReportSuite) TestReport_RunReportCreatesFact() {
 	defer tx.Rollback()
 
 	ts := time.Now().Truncate(time.Hour)
-	require.NoError(t, report.Run(tx, prom, query.Name, ts))
+	require.NoError(t, report.Run(context.Background(), tx, prom, query.Name, ts, report.WithPrometheusQueryTimeout(time.Second)))
 	fact := s.requireFactForQueryIdAndProductSource(tx, query, "my-product:my-cluster", ts)
 	require.Equal(t, float64(defaultQueryReturnValue), fact.Quantity)
 }
@@ -137,11 +149,11 @@ func (s *ReportSuite) TestReport_RunReportNonLockingUpsert() {
 	defer tx2.Rollback()
 
 	baseTime := time.Date(2020, time.January, 23, 17, 0, 0, 0, time.UTC)
-	require.NoError(t, report.Run(tx, prom, query.Name, baseTime))
+	require.NoError(t, report.Run(context.Background(), tx, prom, query.Name, baseTime))
 	require.NoError(t, tx.Commit())
 
-	require.NoError(t, report.Run(tx1, prom, query.Name, baseTime.Add(1*time.Hour)), "transaction should not be blocked on upsert")
-	require.NoError(t, report.Run(tx2, prom, query.Name, baseTime.Add(2*time.Hour)), "transaction should not be blocked on upsert")
+	require.NoError(t, report.Run(context.Background(), tx1, prom, query.Name, baseTime.Add(1*time.Hour)), "transaction should not be blocked on upsert")
+	require.NoError(t, report.Run(context.Background(), tx2, prom, query.Name, baseTime.Add(2*time.Hour)), "transaction should not be blocked on upsert")
 
 	require.NoError(t, tx2.Commit(), "transaction should not be blocked on commit")
 	require.NoError(t, tx1.Commit(), "transaction should not be blocked on commit")
@@ -157,11 +169,11 @@ func (s *ReportSuite) TestReport_RerunReportUpdatesFactQuantity() {
 	defer tx.Rollback()
 
 	ts := time.Now().Truncate(time.Hour)
-	require.NoError(t, report.Run(tx, prom, query.Name, ts))
+	require.NoError(t, report.Run(context.Background(), tx, prom, query.Name, ts))
 
 	_, err = tx.Exec("UPDATE queries SET query = $1 WHERE id = $2", fmt.Sprintf(promTestquery, 77), query.Id)
 	require.NoError(t, err)
-	require.NoError(t, report.Run(tx, prom, query.Name, ts))
+	require.NoError(t, report.Run(context.Background(), tx, prom, query.Name, ts))
 	fact := s.requireFactForQueryIdAndProductSource(tx, query, "my-product:my-cluster", ts)
 	require.Equal(t, float64(77), fact.Quantity)
 }
@@ -176,16 +188,16 @@ func (s *ReportSuite) TestReport_ProductSpecificityOfSource() {
 	defer tx.Rollback()
 
 	ts := time.Now().Truncate(time.Hour)
-	require.NoError(t, report.Run(tx, prom, query.Name, ts))
+	require.NoError(t, report.Run(context.Background(), tx, prom, query.Name, ts))
 	s.requireFactForQueryIdAndProductSource(tx, query, "my-product:my-cluster", ts)
 
 	wildcardProduct := s.createProduct(tx, "my-product:*:my-tenant")
-	require.NoError(t, report.Run(tx, prom, query.Name, ts))
+	require.NoError(t, report.Run(context.Background(), tx, prom, query.Name, ts))
 	fact := s.requireFactForQueryIdAndProductSource(tx, query, "my-product:*:my-tenant", ts)
 	require.Equal(t, wildcardProduct.Id, fact.ProductId)
 
 	specificProduct := s.createProduct(tx, "my-product:my-cluster:my-tenant:my-namespace")
-	require.NoError(t, report.Run(tx, prom, query.Name, ts))
+	require.NoError(t, report.Run(context.Background(), tx, prom, query.Name, ts))
 	fact = s.requireFactForQueryIdAndProductSource(tx, query, "my-product:my-cluster:my-tenant:my-namespace", ts)
 	require.Equal(t, specificProduct.Id, fact.ProductId)
 }

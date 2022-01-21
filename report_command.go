@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/appuio/appuio-cloud-reporting/pkg/db"
@@ -14,11 +15,12 @@ import (
 )
 
 type reportCommand struct {
-	DatabaseURL   string
-	PrometheusURL string
-	QueryName     string
-	Begin         *time.Time
-	RepeatUntil   *time.Time
+	DatabaseURL      string
+	PrometheusURL    string
+	QueryName        string
+	Begin            *time.Time
+	RepeatUntil      *time.Time
+	PromQueryTimeout time.Duration
 }
 
 var reportCommandName = "report"
@@ -39,6 +41,8 @@ func newReportCommand() *cli.Command {
 				EnvVars: envVars("BEGIN"), Layout: time.RFC3339, Required: true, DefaultText: defaultTestForRequiredFlags},
 			&cli.TimestampFlag{Name: "repeat-until", Usage: fmt.Sprintf("Repeat running the report until reaching this timestamp (%s)", time.RFC3339),
 				EnvVars: envVars("REPEAT_UNTIL"), Layout: time.RFC3339, Required: false},
+			&cli.DurationFlag{Name: "prom-query-timeout", Usage: "Timeout when querying prometheus (example: 1m)",
+				EnvVars: envVars("PROM_QUERY_TIMEOUT"), Destination: &command.PromQueryTimeout, Required: false},
 		},
 	}
 }
@@ -65,12 +69,17 @@ func (cmd *reportCommand) execute(cliCtx *cli.Context) error {
 	}
 	defer rdb.Close()
 
+	o := make([]report.Option, 0)
+	if cmd.PromQueryTimeout != 0 {
+		o = append(o, report.WithPrometheusQueryTimeout(cmd.PromQueryTimeout))
+	}
+
 	if cmd.RepeatUntil != nil {
-		if err := cmd.runReportRange(ctx, rdb, promClient); err != nil {
+		if err := cmd.runReportRange(ctx, rdb, promClient, o); err != nil {
 			return err
 		}
 	} else {
-		if err := cmd.runReport(ctx, rdb, promClient); err != nil {
+		if err := cmd.runReport(ctx, rdb, promClient, o); err != nil {
 			return err
 		}
 	}
@@ -79,27 +88,34 @@ func (cmd *reportCommand) execute(cliCtx *cli.Context) error {
 	return nil
 }
 
-func (cmd *reportCommand) runReportRange(ctx context.Context, db *sqlx.DB, promClient apiv1.API) error {
+func (cmd *reportCommand) runReportRange(ctx context.Context, db *sqlx.DB, promClient apiv1.API, o []report.Option) error {
 	log := AppLogger(ctx)
 
+	started := time.Now()
+	reporter := report.WithProgressReporter(func(p report.Progress) {
+		fmt.Fprintf(os.Stderr, "Report %d, Current: %s [%s]\n",
+			p.Count, p.Timestamp.Format(time.RFC3339), time.Since(started).Round(time.Second),
+		)
+	})
+
 	log.Info("Running reports...")
-	c, err := report.RunRange(db, promClient, cmd.QueryName, *cmd.Begin, *cmd.RepeatUntil)
+	c, err := report.RunRange(ctx, db, promClient, cmd.QueryName, *cmd.Begin, *cmd.RepeatUntil, append(o, reporter)...)
 	log.Info(fmt.Sprintf("Ran %d reports", c))
 	return err
 }
 
-func (cmd *reportCommand) runReport(ctx context.Context, db *sqlx.DB, promClient apiv1.API) error {
+func (cmd *reportCommand) runReport(ctx context.Context, db *sqlx.DB, promClient apiv1.API, o []report.Option) error {
 	log := AppLogger(ctx)
 
 	log.V(1).Info("Begin transaction")
-	tx, err := db.Beginx()
+	tx, err := db.BeginTxx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 
 	log.Info("Running report...")
-	if err := report.Run(tx, promClient, cmd.QueryName, *cmd.Begin); err != nil {
+	if err := report.Run(ctx, tx, promClient, cmd.QueryName, *cmd.Begin, o...); err != nil {
 		return err
 	}
 
