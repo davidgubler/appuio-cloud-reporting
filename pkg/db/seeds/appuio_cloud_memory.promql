@@ -1,65 +1,64 @@
 # Sum values over one hour.
 sum_over_time(
-  # Add the final product label by joining the base product with the cluster ID, the tenant and the namespace.
-  label_join(
-    # Add the category label by joining the cluster ID and the namespace.
+  # Average over a one-minute time frame.
+  # NOTE: This is a sliding window. Results vary based on the queries' execution time.
+  avg_over_time(
+    # Add the final product label by joining the base product with the cluster ID, the tenant and the namespace.
     label_join(
-      # Add the base product identifier.
-      label_replace(
-        clamp_min(
-          # Get the maximum of requested and used memory.
-          # TODO Is there a better way to get the maximum of two vectors?
-          (
-            # Select used memory if higher.
+      # Add the category label by joining the cluster ID and the namespace.
+      label_join(
+        # Add the base product identifier.
+        label_replace(
+          clamp_min(
+            # Get the maximum of requested and used memory.
+            # TODO Is there a better way to get the maximum of two vectors?
             (
-              sum by(cluster_id, namespace) (
-                # Average over a one-minute time frame.
-                # NOTE: This is a sliding window. Results vary based on the queries' execution time.
-                avg_over_time(container_memory_working_set_bytes{image!=""}[1m])
+              # Select used memory if higher.
+              (
+                sum by(cluster_id, namespace) (container_memory_working_set_bytes{image!=""})
+                # IMPORTANT: one clause must use equal. If used grater and lesser than, equal values will be dropped.
+                >=
+                sum by(cluster_id, namespace) (kube_pod_container_resource_requests{resource="memory"})
               )
-              # IMPORTANT: one clause must use equal. If used grater and lesser than, equal values will be dropped.
-              >=
-              sum by(cluster_id, namespace) (kube_pod_container_resource_requests{resource="memory"})
-            )
-            or
-            # Select reserved memory if higher.
-            (
-              sum by(cluster_id, namespace) (
-                # Average over a one-minute time frame.
-                avg_over_time(container_memory_working_set_bytes{image!=""}[1m])
+              or
+              # Select reserved memory if higher.
+              (
+                sum by(cluster_id, namespace) (container_memory_working_set_bytes{image!=""})
+                <
+                sum by(cluster_id, namespace) (kube_pod_container_resource_requests{resource="memory"})
               )
-              <
-              sum by(cluster_id, namespace) (kube_pod_container_resource_requests{resource="memory"})
             )
-          )
-          *
-          # Join namespace label `label_appuio_io_organization` as `tenant_id`.
-          on(cluster_id, namespace)
-          group_left(tenant_id)
-          label_replace(
-            kube_namespace_labels{label_appuio_io_organization=~".+"},
-            "tenant_id",
-            "$1",
-            "label_appuio_io_organization", "(.*)"
+            *
+            # Join namespace label `label_appuio_io_organization` as `tenant_id`.
+            on(cluster_id, namespace)
+            group_left(tenant_id)
+            label_replace(
+              kube_namespace_labels{label_appuio_io_organization=~".+"},
+              "tenant_id",
+              "$1",
+              "label_appuio_io_organization", "(.*)"
+            ),
+            # At least return 125MiB
+            125 * 1024 * 1024
           ),
-          # At least return 125MiB
-          125 * 1024 * 1024
+          "product",
+          "appuio_cloud_memory",
+          "product",
+          ".*"
         ),
-        "product",
-        "appuio_cloud_memory",
-        "product",
-        ".*"
+        "category",
+        ":",
+        "cluster_id",
+        "namespace"
       ),
-      "category",
+      "product",
       ":",
+      "product",
       "cluster_id",
+      "tenant_id",
       "namespace"
-    ),
-    "product",
-    ":",
-    "product",
-    "cluster_id",
-    "tenant_id",
-    "namespace"
+    )[45s:15s]
   )[59m:1m]
 )
+# Convert to MiB
+/ 1024 / 1024
