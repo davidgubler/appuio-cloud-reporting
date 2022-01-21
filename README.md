@@ -46,6 +46,19 @@ kubectl -n appuio-reporting create secret generic reporting-db-superuser --from-
 kubectl -n appuio-reporting apply -k manifests/base
 ```
 
+### Grafana
+
+There is a Grafana deployment prepared under `manifests/grafana`.
+To be able to use that one, customize the parameters in `grafana-helm-values.yaml` and run `make` to generate the manifest.
+
+The Grafana Helm Chart is coming from https://grafana.github.io/helm-charts.
+
+A secret is needed:
+
+```sh
+oc -n appuio-reporting create secret generic grafana-creds --from-literal=admin-password=$(pwgen 40 1) --from-literal=admin-user=admin
+```
+
 ## Usage
 
 ### Run Report
