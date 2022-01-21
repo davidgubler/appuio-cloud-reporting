@@ -14,6 +14,7 @@ include Makefile.vars.mk
 # Following includes do not print warnings or error if files aren't found
 # Optional Documentation module.
 -include docs/antora-preview.mk docs/antora-build.mk
+-include Makefile.compose.mk
 
 .PHONY: help
 help: ## Show this help
@@ -35,15 +36,14 @@ build-docker: build-bin ## Build docker image
 ensure-prometheus: .cache/prometheus ## Ensures that Prometheus is installed in the project dir. Downloads it if necessary.
 
 .PHONY: test
-test: export ACR_DB_URL = postgres://test-migrations:test-migrations@localhost:65432/test-migrations?sslmode=disable
-test: ensure-prometheus
-	docker rm -f test-migrations ||:
-	docker run -d --name test-migrations -e POSTGRES_DB=test-migrations -e POSTGRES_USER=test-migrations -e POSTGRES_PASSWORD=test-migrations -p65432:5432 postgres:13-bullseye
-	docker exec -t test-migrations sh -c 'until pg_isready; do sleep 1; done; sleep 1'
+test: export ACR_DB_URL = postgres://user:password@localhost:55432/db?sslmode=disable
+test: COMPOSE_FILE = docker-compose-test.yml
+test: compose_args = -p reporting-test
+test: ensure-prometheus docker-compose-down ping-postgres ## Run full test suite
 	go run github.com/appuio/appuio-cloud-reporting migrate
 	go run github.com/appuio/appuio-cloud-reporting migrate --seed
 	go test ./... -tags integration -coverprofile cover.out -covermode atomic
-	docker rm -f test-migrations
+	@$(COMPOSE_CMD) $(compose_args) down
 
 .PHONY: fmt
 fmt: ## Run 'go fmt' against code
@@ -63,7 +63,7 @@ generate: ## Generate additional code and artifacts
 	@go generate ./...
 
 .PHONY: clean
-clean: ## Cleans local build artifacts
+clean: docker-compose-down ## Cleans local build artifacts
 	rm -rf docs/node_modules $(docs_out_dir) dist .cache
 
 .cache/prometheus:

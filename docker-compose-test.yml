@@ -1,0 +1,11 @@
+# This file is used for unit tests
+version: "3.8"
+services:
+  postgres:
+    image: docker.io/library/postgres:13-bullseye
+    environment:
+      POSTGRES_DB: db
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: user
+    ports:
+      - "55432:5432"

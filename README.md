@@ -89,6 +89,8 @@ psql -U "${DB_USER}" -w -h localhost reporting
 ## Local Development
 
 Local development assumes a locally installed PostgreSQL database.
+This can be achieved by running `make docker-compose-up`.
+See `docker-compose.yml` for the configuration.
 
 ```sh
 createdb appuio-cloud-reporting-test
