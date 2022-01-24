@@ -38,7 +38,7 @@ type Product struct {
 
 	Source string
 	Target sql.NullString
-	Amount int64
+	Amount float64
 	Unit   string
 
 	During pgtype.Tstzrange
