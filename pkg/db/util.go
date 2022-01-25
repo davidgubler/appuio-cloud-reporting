@@ -38,6 +38,26 @@ func GetNamedContext(ctx context.Context, p NamedPreparerContext, dest interface
 	return st.GetContext(ctx, dest, arg)
 }
 
+// SelectNamed is like sqlx.Select but for named statements.
+func SelectNamed(p sqlx.Ext, dest interface{}, query string, arg interface{}) error {
+	nq, narg, err := sqlx.Named(query, arg)
+	if err != nil {
+		return fmt.Errorf("failed to substitute name parameters: %w", err)
+	}
+	nq = p.Rebind(nq)
+	return sqlx.Select(p, dest, nq, narg...)
+}
+
+// SelectNamedContext is like sqlx.SelectContext but for named statements.
+func SelectNamedContext(ctx context.Context, p sqlx.ExtContext, dest interface{}, query string, arg interface{}) error {
+	nq, narg, err := sqlx.Named(query, arg)
+	if err != nil {
+		return fmt.Errorf("failed to substitute name parameters: %w", err)
+	}
+	nq = p.Rebind(nq)
+	return sqlx.SelectContext(ctx, p, dest, nq, narg...)
+}
+
 // InfiniteRange returns an infinite PostgreSQL timerange [-Inf,Inf).
 func InfiniteRange() pgtype.Tstzrange {
 	return Timerange(MustTimestamp(pgtype.NegativeInfinity), MustTimestamp(pgtype.Infinity))

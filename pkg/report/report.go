@@ -118,13 +118,7 @@ func processSample(ctx context.Context, tx *sqlx.Tx, ts time.Time, query db.Quer
 	}
 
 	var upsertedDateTime db.DateTime
-	err = upsertDateTime(ctx, tx, &upsertedDateTime, db.DateTime{
-		Timestamp: ts,
-		Year:      ts.Year(),
-		Month:     int(ts.Month()),
-		Day:       ts.Day(),
-		Hour:      ts.Hour(),
-	})
+	err = upsertDateTime(ctx, tx, &upsertedDateTime, db.BuildDateTime(ts))
 	if err != nil {
 		return fmt.Errorf("failed to upsert date_time '%s': %w", ts.Format(time.RFC3339), err)
 	}

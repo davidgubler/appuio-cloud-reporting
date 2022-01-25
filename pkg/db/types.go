@@ -77,6 +77,18 @@ type Fact struct {
 	Quantity float64
 }
 
+// BuildDateTime builds a DateTime object from the given timestamp.
+func BuildDateTime(ts time.Time) DateTime {
+	return DateTime{
+		Timestamp: ts,
+
+		Year:  ts.Year(),
+		Month: int(ts.Month()),
+		Day:   ts.Day(),
+		Hour:  ts.Hour(),
+	}
+}
+
 // Timestamp creates a Postgres timestamp from the given value.
 // Valid values are nil, pgtype.Infinity/pgtype.NegativeInfinity, and a time.Time object.
 func Timestamp(from interface{}) (pgtype.Timestamptz, error) {
