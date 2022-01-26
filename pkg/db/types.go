@@ -48,7 +48,7 @@ type Discount struct {
 	Id string
 
 	Source   string
-	Discount int
+	Discount float64
 
 	During pgtype.Tstzrange
 }
@@ -75,6 +75,18 @@ type Fact struct {
 	DiscountId string `db:"discount_id"`
 
 	Quantity float64
+}
+
+// BuildDateTime builds a DateTime object from the given timestamp.
+func BuildDateTime(ts time.Time) DateTime {
+	return DateTime{
+		Timestamp: ts,
+
+		Year:  ts.Year(),
+		Month: int(ts.Month()),
+		Day:   ts.Day(),
+		Hour:  ts.Hour(),
+	}
 }
 
 // Timestamp creates a Postgres timestamp from the given value.

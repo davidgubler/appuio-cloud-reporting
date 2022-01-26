@@ -35,6 +35,31 @@ func (s *UtilTestSuite) TestGetNamed() {
 	require.Error(t, db.GetNamedContext(context.Background(), tx, &res, "invalid", namedParam))
 }
 
+func (s *UtilTestSuite) TestSelectNamed() {
+	t := s.T()
+	tx := s.Begin()
+	defer tx.Rollback()
+
+	type testTable struct{ Q string }
+	_, err := tx.Exec("CREATE TEMPORARY TABLE t (q text)")
+	require.NoError(t, err)
+
+	query := "INSERT INTO t (q) VALUES (:q) RETURNING *"
+	expected := []testTable{{"ping"}, {"pong"}}
+
+	res := make([]testTable, 0)
+	require.NoError(t, db.SelectNamed(tx, &res, query, expected))
+	require.Equal(t, expected, res)
+
+	res = make([]testTable, 0)
+	require.NoError(t, db.SelectNamedContext(context.Background(), tx, &res, query, expected))
+	require.Equal(t, expected, res)
+
+	res = make([]testTable, 0)
+	require.Error(t, db.SelectNamed(tx, &res, "invalid", expected))
+	require.Error(t, db.SelectNamedContext(context.Background(), tx, &res, "invalid", expected))
+}
+
 func TestUtil(t *testing.T) {
 	suite.Run(t, new(UtilTestSuite))
 }

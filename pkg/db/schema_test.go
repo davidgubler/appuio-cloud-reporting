@@ -126,6 +126,39 @@ func (s *SchemaTestSuite) TestDiscounts_SourceDuring_NonOverlapping() {
 	requireExclusionValidationError(t, err)
 }
 
+func (s *SchemaTestSuite) TestDiscounts_Discount_MinMaxConstraint() {
+	t := s.T()
+
+	tests := []struct {
+		name     string
+		discount float64
+		errf     func(*testing.T, error)
+	}{
+		{"overMax", 1.3, requireCheckConstraintError},
+		{"underMin", -7, requireCheckConstraintError},
+		{"inRangeLow", 0, func(t *testing.T, e error) { require.NoError(t, e) }},
+		{"inRange", 0.78, func(t *testing.T, e error) { require.NoError(t, e) }},
+		{"inRangeHigh", 1, func(t *testing.T, e error) { require.NoError(t, e) }},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			tx := s.Begin()
+			defer tx.Rollback()
+
+			stmt, err := tx.PrepareNamed("INSERT INTO discounts (source, discount) VALUES (:source, :discount)")
+			require.NoError(t, err)
+			defer stmt.Close()
+
+			_, err = stmt.Exec(db.Discount{
+				Source:   testCase.name,
+				Discount: testCase.discount,
+			})
+			testCase.errf(t, err)
+		})
+	}
+}
+
 func TestSchema(t *testing.T) {
 	suite.Run(t, new(SchemaTestSuite))
 }
@@ -135,5 +168,13 @@ func requireExclusionValidationError(t *testing.T, err error) {
 
 	pgErr := &pgconn.PgError{}
 	require.ErrorAs(t, err, &pgErr)
-	require.Equal(t, pgErr.SQLState(), "23P01", "error code should match exclusion violation error")
+	require.Equal(t, "23P01", pgErr.SQLState(), "error code should match exclusion violation error")
+}
+
+func requireCheckConstraintError(t *testing.T, err error) {
+	t.Helper()
+
+	pgErr := &pgconn.PgError{}
+	require.ErrorAs(t, err, &pgErr)
+	require.Equal(t, "23514", pgErr.SQLState(), "error code should match check constraint error")
 }
