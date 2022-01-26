@@ -70,7 +70,7 @@ func (s *InvoiceSuite) SetupSuite() {
 		db.GetNamed(tdb, &s.storageDiscount,
 			"INSERT INTO discounts (source,discount,during) VALUES (:source,:discount,:during) RETURNING *", db.Discount{
 				Source:   "test_storage:us-rac-2",
-				Discount: 50,
+				Discount: 0.4,
 				During:   db.InfiniteRange(),
 			}))
 
@@ -198,10 +198,9 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 	require.Equal(t, time.Date(2021, time.December, 1, 0, 0, 0, 0, time.UTC), invRun.PeriodStart)
 	require.Equal(t, time.Date(2021, time.December, 31, 0, 0, 0, 0, time.UTC), invRun.PeriodEnd)
 
-	discountToMultiplier := func(discount int) float64 {
-		return (float64(100) - float64(discount)) / float64(100)
+	discountToMultiplier := func(discount float64) float64 {
+		return float64(1) - float64(discount)
 	}
-	require.Equal(t, 0.58, discountToMultiplier(42))
 
 	const stampsInTimerange = 2
 	t.Run("InvoiceForTricell", func(t *testing.T) {
@@ -226,7 +225,7 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 							Quantity:     quantity,
 							Unit:         s.memoryProduct.Unit,
 							PricePerUnit: s.memoryProduct.Amount,
-							Discount:     int64(s.memoryDiscount.Discount),
+							Discount:     s.memoryDiscount.Discount,
 							Total:        total,
 						},
 					},
@@ -263,7 +262,7 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 							Quantity:     memP12Quantity,
 							Unit:         s.memoryProduct.Unit,
 							PricePerUnit: s.memoryProduct.Amount,
-							Discount:     int64(s.memoryDiscount.Discount),
+							Discount:     s.memoryDiscount.Discount,
 							Total:        memP12Total,
 						},
 						{
@@ -271,7 +270,7 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 							Quantity:     storP12Quantity,
 							Unit:         s.storageProduct.Unit,
 							PricePerUnit: s.storageProduct.Amount,
-							Discount:     int64(s.storageDiscount.Discount),
+							Discount:     s.storageDiscount.Discount,
 							Total:        storP12Total,
 						},
 					},
@@ -287,7 +286,7 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 							Quantity:     memNestQuantity,
 							Unit:         s.memoryProduct.Unit,
 							PricePerUnit: s.memoryProduct.Amount,
-							Discount:     int64(s.memoryDiscount.Discount),
+							Discount:     s.memoryDiscount.Discount,
 							Total:        memNestTotal,
 						},
 					},

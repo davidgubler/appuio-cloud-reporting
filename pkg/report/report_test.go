@@ -50,7 +50,7 @@ func (s *ReportSuite) SetupSuite() {
 		db.GetNamed(tdb, &s.sampleDiscount,
 			"INSERT INTO discounts (source,discount,during) VALUES (:source,:discount,:during) RETURNING *", db.Discount{
 				Source:   "my-product:my-cluster",
-				Discount: 50,
+				Discount: 0.5,
 				During:   infiniteRange(),
 			}))
 

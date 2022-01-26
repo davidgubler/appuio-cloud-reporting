@@ -46,8 +46,8 @@ type Item struct {
 	Unit string
 	// PricePerUnit represents the price per unit in Rappen
 	PricePerUnit float64
-	// Discount represents a discount in percent. e.g. 30%: price per unit * 0.7
-	Discount int64
+	// Discount represents a discount in percent. 0.3 discount equals price per unit * 0.7
+	Discount float64
 	// Total represents the total accumulated cost.
 	// (hour1 * quantity * price per unit * discount) + (hour2 * quantity * price
 	// per unit * discount)
@@ -127,7 +127,7 @@ func itemsForCategory(ctx context.Context, tx *sqlx.Tx, tenant db.Tenant, catego
 	var items []Item
 	err := sqlx.SelectContext(ctx, tx, &items,
 		`SELECT queries.description, SUM(facts.quantity) as quantity, products.unit, products.amount AS pricePerUnit, discounts.discount,
-				SUM( facts.quantity * products.amount * (( 100::double precision - discounts.discount )/100) ) AS total
+				SUM( facts.quantity * products.amount * ( 1::double precision - discounts.discount ) ) AS total
 			FROM facts
 				INNER JOIN tenants    ON (facts.tenant_id = tenants.id)
 				INNER JOIN queries    ON (facts.query_id = queries.id)

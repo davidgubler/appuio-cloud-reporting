@@ -48,7 +48,7 @@ type Discount struct {
 	Id string
 
 	Source   string
-	Discount int
+	Discount float64
 
 	During pgtype.Tstzrange
 }
