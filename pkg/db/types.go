@@ -22,6 +22,7 @@ type Query struct {
 type Tenant struct {
 	Id string
 
+	// Source is the tenant string read from the 'appuio.io/organization' label.
 	Source string
 	Target sql.NullString
 }
@@ -29,6 +30,7 @@ type Tenant struct {
 type Category struct {
 	Id string
 
+	// Source consists of the cluster id and namespace in the form of "zone:namespace".
 	Source string
 	Target sql.NullString
 }
@@ -36,6 +38,8 @@ type Category struct {
 type Product struct {
 	Id string
 
+	// Source is a string consisting of "query:zone:tenant:namespace:class" and can contain wildcards.
+	// See package `sourcekey` for more information.
 	Source string
 	Target sql.NullString
 	Amount float64
@@ -47,6 +51,8 @@ type Product struct {
 type Discount struct {
 	Id string
 
+	// Source is a string consisting of "query:zone:tenant:namespace:class" and can contain wildcards.
+	// See package `sourcekey` for more information.
 	Source   string
 	Discount float64
 
