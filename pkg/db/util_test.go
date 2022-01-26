@@ -55,9 +55,12 @@ func (s *UtilTestSuite) TestSelectNamed() {
 	require.NoError(t, db.SelectNamedContext(context.Background(), tx, &res, query, expected))
 	require.Equal(t, expected, res)
 
-	res = make([]testTable, 0)
-	require.Error(t, db.SelectNamed(tx, &res, "invalid", expected))
-	require.Error(t, db.SelectNamedContext(context.Background(), tx, &res, "invalid", expected))
+	// Type castings must be in the form of `CAST(:q AS <type>)`
+	strRes := make([]string, 0)
+	require.Error(t, db.SelectNamed(tx, &strRes, "SELECT :q::text", map[string]interface{}{"q": "test"}))
+	require.NoError(t, db.SelectNamed(tx, &strRes, "SELECT CAST(:q AS text)", map[string]interface{}{"q": "test"}))
+	require.Error(t, db.SelectNamedContext(context.Background(), tx, &strRes, "SELECT :q::text", map[string]interface{}{"q": "test"}))
+	require.NoError(t, db.SelectNamedContext(context.Background(), tx, &strRes, "SELECT CAST(:q AS text)", map[string]interface{}{"q": "test"}))
 }
 
 func TestUtil(t *testing.T) {
