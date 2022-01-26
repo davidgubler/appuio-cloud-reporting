@@ -12,7 +12,7 @@ sum_over_time(
             kube_persistentvolume_capacity_bytes
             *
             # Join the PersistentVolumeClaim to get the namespace
-            on (persistentvolume)
+            on (cluster_id,persistentvolume)
             group_left(namespace, name)
             label_replace(
               kube_persistentvolume_claim_ref,
@@ -23,7 +23,7 @@ sum_over_time(
             )
             *
             # Join the PersistentVolume info to get StorageClass
-            on (persistentvolume)
+            on (cluster_id,persistentvolume)
             group_left(storageclass)
             # Do not differantiate between regular and encrypted storage class versions.
             label_replace(
@@ -35,7 +35,7 @@ sum_over_time(
             )
             *
             # Join the namespace label to get the tenant
-            on(namespace)
+            on(cluster_id,namespace)
             group_left(tenant_id)
             label_replace(
               kube_namespace_labels{label_appuio_io_organization=~".+"},
