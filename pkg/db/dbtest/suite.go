@@ -60,6 +60,7 @@ func (ts *Suite) SetupSuite() {
 	tmpURL := new(url.URL)
 	*tmpURL = *u
 	tmpURL.Path = "/" + tmpDbName
+	ts.T().Logf("Using database name: %s", tmpDbName)
 	dbx, err := db.Openx(tmpURL.String())
 	require.NoError(ts.T(), err)
 	ts.tmpDB = dbx
