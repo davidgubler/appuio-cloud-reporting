@@ -20,7 +20,7 @@ type PromQuerier interface {
 
 // RunRange executes prometheus queries like Run() until the `until` timestamp is reached or an error occurred.
 // Returns the number of reports run and a possible error.
-func RunRange(ctx context.Context, db *sqlx.DB, prom PromQuerier, queryName string, from time.Time, until time.Time, options ...Option) (int, error) {
+func RunRange(ctx context.Context, database *sqlx.DB, prom PromQuerier, queryName string, from time.Time, until time.Time, options ...Option) (int, error) {
 	opts := buildOptions(options)
 
 	n := 0
@@ -29,7 +29,7 @@ func RunRange(ctx context.Context, db *sqlx.DB, prom PromQuerier, queryName stri
 		if opts.progressReporter != nil {
 			opts.progressReporter(Progress{currentTime, n})
 		}
-		if err := inTransaction(ctx, db, func(tx *sqlx.Tx) error {
+		if err := db.RunInTransaction(ctx, database, func(tx *sqlx.Tx) error {
 			return Run(ctx, tx, prom, queryName, currentTime, options...)
 		}); err != nil {
 			return n, fmt.Errorf("error running report at %s: %w", currentTime.Format(time.RFC3339), err)
@@ -239,17 +239,4 @@ func getMetricLabel(m model.Metric, name string) (model.LabelValue, error) {
 		return "", fmt.Errorf("expected sample to contain label '%s'", name)
 	}
 	return value, nil
-}
-
-func inTransaction(ctx context.Context, db *sqlx.DB, cb func(tx *sqlx.Tx) error) error {
-	tx, err := db.BeginTxx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("error starting transaction: %w", err)
-	}
-	defer tx.Rollback()
-
-	if err := cb(tx); err != nil {
-		return err
-	}
-	return tx.Commit()
 }
