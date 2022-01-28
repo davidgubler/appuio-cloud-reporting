@@ -9,12 +9,12 @@ var adapterImpl Adapter
 
 // Adapter abstracts an ERP adapter where the concrete implementation is like a replaceable plugin.
 type Adapter interface {
-	// Initialize starts amd configures the Adapter for consummation.
+	// Initialize starts and configures the Adapter for consummation.
 	Initialize(ctx context.Context) error
 
 	// NewCategoryReconciler returns a new CategoryReconciler instance.
 	NewCategoryReconciler() CategoryReconciler
-	
+
 	// Cleanup gracefully shuts down the Adapter.
 	Cleanup(ctx context.Context) error
 }

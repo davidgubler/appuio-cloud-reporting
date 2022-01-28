@@ -1,5 +1,6 @@
 package entity
 
+// Category represents the category dimension.
 type Category struct {
 	// Source consists of the cluster id and namespace in the form of "zone:namespace".
 	Source string
