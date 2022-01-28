@@ -14,6 +14,9 @@ type Adapter interface {
 
 	// NewCategoryReconciler returns a new CategoryReconciler instance.
 	NewCategoryReconciler() CategoryReconciler
+	
+	// Cleanup gracefully shuts down the Adapter.
+	Cleanup(ctx context.Context) error
 }
 
 // Register registers a new Adapter.
