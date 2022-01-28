@@ -11,15 +11,15 @@ var adapterImpl Adapter
 type Adapter interface {
 	// Open starts and configures the Adapter for consummation.
 	Open(ctx context.Context) (Driver, error)
-
-	// Close gracefully shuts down the Adapter.
-	Close(ctx context.Context) error
 }
 
 // Driver contains factory methods to initialize various reconcilers.
 type Driver interface {
 	// NewCategoryReconciler returns a new CategoryReconciler instance.
 	NewCategoryReconciler() CategoryReconciler
+
+	// Close gracefully shuts down the Driver.
+	Close(ctx context.Context) error
 }
 
 // Register registers a new Adapter.
