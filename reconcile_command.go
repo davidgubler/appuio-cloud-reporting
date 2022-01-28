@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 
+	"github.com/appuio/appuio-cloud-reporting/pkg/categories"
 	"github.com/appuio/appuio-cloud-reporting/pkg/db"
 	"github.com/appuio/appuio-cloud-reporting/pkg/erp"
-	"github.com/appuio/appuio-cloud-reporting/pkg/erp/entity"
 	"github.com/go-logr/logr"
 	"github.com/urfave/cli/v2"
 )
@@ -39,7 +39,7 @@ func (cmd *reconcileCommand) before(ctx *cli.Context) error {
 func (cmd *reconcileCommand) execute(context *cli.Context) error {
 	log := AppLogger(context.Context).WithName(reconcileCommandName)
 	log.V(1).Info("Opening database connection", "url", cmd.DatabaseURL)
-	_, err := db.Open(cmd.DatabaseURL)
+	rdb, err := db.Openx(cmd.DatabaseURL)
 	if err != nil {
 		return fmt.Errorf("could not open database connection: %w", err)
 	}
@@ -58,9 +58,7 @@ func (cmd *reconcileCommand) execute(context *cli.Context) error {
 
 	categoryRec := driver.NewCategoryReconciler()
 	log.Info("Reconciling categories...")
-	_, err = categoryRec.Reconcile(adapterCtx, entity.Category{Source: "zone:namespace"})
-
-	return err
+	return categories.Reconcile(adapterCtx, rdb, categoryRec)
 }
 
 func (cmd *reconcileCommand) after(context *cli.Context) error {

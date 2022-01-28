@@ -62,3 +62,18 @@ func SelectNamedContext(ctx context.Context, p sqlx.ExtContext, dest interface{}
 func InfiniteRange() pgtype.Tstzrange {
 	return Timerange(MustTimestamp(pgtype.NegativeInfinity), MustTimestamp(pgtype.Infinity))
 }
+
+// RunInTransaction runs the given cb func in a transaction.
+// If the func returns an error, the transaction is rolled back, otherwise committed.
+func RunInTransaction(ctx context.Context, db *sqlx.DB, cb func(tx *sqlx.Tx) error) error {
+	tx, err := db.BeginTxx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("error starting transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	if err := cb(tx); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
