@@ -67,7 +67,6 @@ func newApp() (context.Context, context.CancelFunc, *cli.App) {
 			newMigrateCommand(),
 			newReportCommand(),
 			newInvoiceCommand(),
-			newReconcileCommand(),
 		},
 		ExitErrHandler: func(context *cli.Context, err error) {
 			if err != nil {

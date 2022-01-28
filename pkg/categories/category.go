@@ -3,6 +3,7 @@ package categories
 import (
 	"context"
 	"database/sql"
+	"fmt"
 
 	"github.com/appuio/appuio-cloud-reporting/pkg/db"
 	"github.com/appuio/appuio-cloud-reporting/pkg/erp"
@@ -23,7 +24,7 @@ func Reconcile(ctx context.Context, database *sqlx.DB, reconciler erp.CategoryRe
 			// we need to reconcile categories in the ERP regardless if Target has been set
 			modified, err := reconciler.Reconcile(ctx, entity.Category{Source: cat.Source, Target: cat.Target.String})
 			if err != nil {
-				return err
+				return fmt.Errorf("error from erp category reconciler: %w", err)
 			}
 			if cat.Target.Valid {
 				// No target update needed
