@@ -9,14 +9,17 @@ var adapterImpl Adapter
 
 // Adapter abstracts an ERP adapter where the concrete implementation is like a replaceable plugin.
 type Adapter interface {
-	// Initialize starts and configures the Adapter for consummation.
-	Initialize(ctx context.Context) error
+	// Open starts and configures the Adapter for consummation.
+	Open(ctx context.Context) (Driver, error)
 
+	// Close gracefully shuts down the Adapter.
+	Close(ctx context.Context) error
+}
+
+// Driver contains factory methods to initialize various reconcilers.
+type Driver interface {
 	// NewCategoryReconciler returns a new CategoryReconciler instance.
 	NewCategoryReconciler() CategoryReconciler
-
-	// Cleanup gracefully shuts down the Adapter.
-	Cleanup(ctx context.Context) error
 }
 
 // Register registers a new Adapter.
