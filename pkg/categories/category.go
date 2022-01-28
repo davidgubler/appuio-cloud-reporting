@@ -10,6 +10,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+// Reconcile synchronizes all stored db.Category with a 3rd party ERP.
 func Reconcile(ctx context.Context, database *sqlx.DB, reconciler erp.CategoryReconciler) error {
 	return db.RunInTransaction(ctx, database, func(tx *sqlx.Tx) error {
 		var categories []db.Category
@@ -19,6 +20,7 @@ func Reconcile(ctx context.Context, database *sqlx.DB, reconciler erp.CategoryRe
 		}
 
 		for _, cat := range categories {
+			// we need to reconcile categories in the ERP regardless if Target has been set
 			modified, err := reconciler.Reconcile(ctx, entity.Category{Source: cat.Source, Target: cat.Target.String})
 			if err != nil {
 				return err
