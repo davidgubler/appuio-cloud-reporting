@@ -193,10 +193,7 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 
 	invRun, err := invoice.Generate(context.Background(), tx, 2021, time.December)
 	require.NoError(t, err)
-	require.Len(t, invRun.Invoices, 2)
-
-	require.Equal(t, time.Date(2021, time.December, 1, 0, 0, 0, 0, time.UTC), invRun.PeriodStart)
-	require.Equal(t, time.Date(2021, time.December, 31, 0, 0, 0, 0, time.UTC), invRun.PeriodEnd)
+	require.Len(t, invRun, 2)
 
 	discountToMultiplier := func(discount float64) float64 {
 		return float64(1) - float64(discount)
@@ -204,7 +201,7 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 
 	const stampsInTimerange = 2
 	t.Run("InvoiceForTricell", func(t *testing.T) {
-		inv := invRun.Invoices[0]
+		inv := invRun[0]
 		const quantity = float64(2000) * stampsInTimerange
 		total := quantity * s.memoryProduct.Amount * discountToMultiplier(s.memoryDiscount.Discount)
 
@@ -214,6 +211,8 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 				Source: s.tricellTenant.Source,
 				Target: s.tricellTenant.Target.String,
 			},
+			PeriodStart: time.Date(2021, time.December, 1, 0, 0, 0, 0, time.UTC),
+			PeriodEnd:   time.Date(2021, time.December, 31, 0, 0, 0, 0, time.UTC),
 			Categories: []invoice.Category{
 				{
 					ID:     s.uroborosCategory.Id,
@@ -221,7 +220,12 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 					Target: s.uroborosCategory.Target.String,
 					Items: []invoice.Item{
 						{
-							Description:  s.memoryQuery.Description,
+							Description: s.memoryQuery.Description,
+							ProductRef: invoice.ProductRef{
+								ID:     s.memoryProduct.Id,
+								Source: s.memoryProduct.Source,
+								Target: s.memoryProduct.Target.String,
+							},
 							Quantity:     quantity,
 							Unit:         s.memoryProduct.Unit,
 							PricePerUnit: s.memoryProduct.Amount,
@@ -237,7 +241,7 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 	})
 
 	t.Run("InvoiceForUmbrellaCorp", func(t *testing.T) {
-		inv := invRun.Invoices[1]
+		inv := invRun[1]
 		const memP12Quantity = float64(4000) * stampsInTimerange
 		memP12Total := memP12Quantity * s.memoryProduct.Amount * discountToMultiplier(s.memoryDiscount.Discount)
 		const storP12Quantity = float64(12) * stampsInTimerange
@@ -251,6 +255,8 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 				Source: s.umbrellaCorpTenant.Source,
 				Target: s.umbrellaCorpTenant.Target.String,
 			},
+			PeriodStart: time.Date(2021, time.December, 1, 0, 0, 0, 0, time.UTC),
+			PeriodEnd:   time.Date(2021, time.December, 31, 0, 0, 0, 0, time.UTC),
 			Categories: []invoice.Category{
 				{
 					ID:     s.p12aCategory.Id,
@@ -258,7 +264,12 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 					Target: s.p12aCategory.Target.String,
 					Items: []invoice.Item{
 						{
-							Description:  s.memoryQuery.Description,
+							Description: s.memoryQuery.Description,
+							ProductRef: invoice.ProductRef{
+								ID:     s.memoryProduct.Id,
+								Source: s.memoryProduct.Source,
+								Target: s.memoryProduct.Target.String,
+							},
 							Quantity:     memP12Quantity,
 							Unit:         s.memoryProduct.Unit,
 							PricePerUnit: s.memoryProduct.Amount,
@@ -266,7 +277,12 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 							Total:        memP12Total,
 						},
 						{
-							Description:  s.storageQuery.Description,
+							Description: s.storageQuery.Description,
+							ProductRef: invoice.ProductRef{
+								ID:     s.storageProduct.Id,
+								Source: s.storageProduct.Source,
+								Target: s.storageProduct.Target.String,
+							},
 							Quantity:     storP12Quantity,
 							Unit:         s.storageProduct.Unit,
 							PricePerUnit: s.storageProduct.Amount,
@@ -282,7 +298,12 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 					Target: s.nestElevCtrlCategory.Target.String,
 					Items: []invoice.Item{
 						{
-							Description:  s.memoryQuery.Description,
+							Description: s.memoryQuery.Description,
+							ProductRef: invoice.ProductRef{
+								ID:     s.memoryProduct.Id,
+								Source: s.memoryProduct.Source,
+								Target: s.memoryProduct.Target.String,
+							},
 							Quantity:     memNestQuantity,
 							Unit:         s.memoryProduct.Unit,
 							PricePerUnit: s.memoryProduct.Amount,

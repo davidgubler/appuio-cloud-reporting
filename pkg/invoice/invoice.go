@@ -10,17 +10,13 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-// Run represents N generated invoices in the same period.
-type Run struct {
+// Invoice represents an invoice for a tenant.
+type Invoice struct {
+	Tenant Tenant
+
 	PeriodStart time.Time
 	PeriodEnd   time.Time
 
-	Invoices []Invoice
-}
-
-// Invoice represents an invoice for a tenant.
-type Invoice struct {
-	Tenant     Tenant
 	Categories []Category
 	// Total represents the total accumulated cost of the invoice.
 	Total float64
@@ -40,6 +36,8 @@ type Category struct {
 type Item struct {
 	// Description describes the line item.
 	Description string
+	// Product describes the product this item is based on.
+	ProductRef
 	// Unit represents the amount of the resource used.
 	Quantity float64
 	// Unit represents the unit of the item. e.g. MiB
@@ -54,34 +52,37 @@ type Item struct {
 	Total float64
 }
 
-// Tenant represents a tenant in the invoice
+// Tenant represents a tenant in the invoice.
 type Tenant struct {
 	ID     string
 	Source string
 	Target string
 }
 
+// ProductRef represents a product reference in the invoice.
+type ProductRef struct {
+	ID     string `db:"product_ref_id"`
+	Source string `db:"product_ref_source"`
+	Target string `db:"product_ref_target"`
+}
+
 // Generate generates invoices for the given month.
 // No data is written to the database. The transaction can be read-only.
-func Generate(ctx context.Context, tx *sqlx.Tx, year int, month time.Month) (Run, error) {
+func Generate(ctx context.Context, tx *sqlx.Tx, year int, month time.Month) ([]Invoice, error) {
 	tenants, err := tenantsForPeriod(ctx, tx, year, month)
 	if err != nil {
-		return Run{}, err
+		return nil, err
 	}
 
 	invoices := make([]Invoice, 0, len(tenants))
 	for _, tenant := range tenants {
 		invoice, err := invoiceForTenant(ctx, tx, tenant, year, month)
 		if err != nil {
-			return Run{}, err
+			return nil, err
 		}
 		invoices = append(invoices, invoice)
 	}
-	return Run{
-		PeriodStart: time.Date(year, month, 1, 0, 0, 0, 0, time.UTC),
-		PeriodEnd:   time.Date(year, month, 1, 0, 0, 0, 0, time.UTC).AddDate(0, 1, -1),
-		Invoices:    invoices,
-	}, nil
+	return invoices, nil
 }
 
 func invoiceForTenant(ctx context.Context, tx *sqlx.Tx, tenant db.Tenant, year int, month time.Month) (Invoice, error) {
@@ -89,12 +90,12 @@ func invoiceForTenant(ctx context.Context, tx *sqlx.Tx, tenant db.Tenant, year i
 	err := sqlx.SelectContext(ctx, tx, &categories,
 		`SELECT DISTINCT categories.*
 			FROM categories
-				INNER JOIN facts ON (facts.category_id = categories.id)
-				INNER JOIN date_times ON (facts.date_time_id = date_times.id)
+			INNER JOIN facts ON (facts.category_id = categories.id)
+			INNER JOIN date_times ON (facts.date_time_id = date_times.id)
 			WHERE date_times.year = $1 AND date_times.month = $2
-				AND facts.tenant_id = $3
+			AND facts.tenant_id = $3
 			ORDER BY categories.source
-		`,
+			`,
 		year, int(month), tenant.Id)
 
 	if err != nil {
@@ -117,9 +118,11 @@ func invoiceForTenant(ctx context.Context, tx *sqlx.Tx, tenant db.Tenant, year i
 	}
 
 	return Invoice{
-		Tenant:     Tenant{ID: tenant.Id, Source: tenant.Source, Target: tenant.Target.String},
-		Categories: invCategories,
-		Total:      sumInvoiceTotal(invCategories),
+		Tenant:      Tenant{ID: tenant.Id, Source: tenant.Source, Target: tenant.Target.String},
+		PeriodStart: time.Date(year, month, 1, 0, 0, 0, 0, time.UTC),
+		PeriodEnd:   time.Date(year, month, 1, 0, 0, 0, 0, time.UTC).AddDate(0, 1, -1),
+		Categories:  invCategories,
+		Total:       sumInvoiceTotal(invCategories),
 	}, nil
 }
 
@@ -127,6 +130,7 @@ func itemsForCategory(ctx context.Context, tx *sqlx.Tx, tenant db.Tenant, catego
 	var items []Item
 	err := sqlx.SelectContext(ctx, tx, &items,
 		`SELECT queries.description, SUM(facts.quantity) as quantity, products.unit, products.amount AS pricePerUnit, discounts.discount,
+				products.id as product_ref_id, products.source as product_ref_source, COALESCE(products.target,''::text) as product_ref_target,
 				SUM( facts.quantity * products.amount * ( 1::double precision - discounts.discount ) ) AS total
 			FROM facts
 				INNER JOIN tenants    ON (facts.tenant_id = tenants.id)
@@ -137,7 +141,7 @@ func itemsForCategory(ctx context.Context, tx *sqlx.Tx, tenant db.Tenant, catego
 			WHERE date_times.year = $1 AND date_times.month = $2
 				AND facts.tenant_id = $3
 				AND facts.category_id = $4
-			GROUP BY queries.description, products.unit, products.amount, discounts.discount
+			GROUP BY queries.description, products.amount, products.unit, products.id, products.source, products.target, discounts.discount
 		`,
 		year, int(month), tenant.Id, category.Id)
 

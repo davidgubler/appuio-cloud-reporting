@@ -73,9 +73,6 @@ func (cmd *invoiceCommand) execute(cliCtx *cli.Context) error {
 	enc.SetEscapeHTML(false)
 	enc.SetIndent("", "\t")
 	enc.Encode(invoices)
-	if err := enc.Encode(invoices); err != nil {
-		return err
-	}
+	return enc.Encode(invoices)
 
-	return tx.Commit()
 }
