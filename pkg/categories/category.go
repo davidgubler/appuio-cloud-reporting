@@ -24,7 +24,10 @@ func Reconcile(ctx context.Context, database *sqlx.DB, reconciler erp.CategoryRe
 	}
 
 	for _, cat := range categories {
-		// we need to reconcile categories in the ERP regardless if Target has been set
+		// We need to reconcile categories in the ERP regardless if Target has been set.
+		// These categories in the ERP may have been updated by a 3rd party without the reporting knowing of it.
+		// So the reporting being authoritative over categories in the ERP, it should be given chance to reset any changes that deviate from the desired defaults.
+		// If we only ever create categories, the categories in the ERP won't ever be touched again.
 		logger.V(2).Info("Reconciling category with ERP...", "source", cat.Source)
 		input := entity.Category{Source: cat.Source, Target: cat.Target.String}
 		output, err := reconciler.Reconcile(ctx, input)
