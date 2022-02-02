@@ -202,8 +202,8 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 	const stampsInTimerange = 2
 	t.Run("InvoiceForTricell", func(t *testing.T) {
 		inv := invRun[0]
-		const quantity = float64(2000) * stampsInTimerange
-		total := quantity * s.memoryProduct.Amount * discountToMultiplier(s.memoryDiscount.Discount)
+		const quantity = float64(2000)
+		total := quantity * stampsInTimerange * s.memoryProduct.Amount * discountToMultiplier(s.memoryDiscount.Discount)
 
 		require.Equal(t, invoice.Invoice{
 			Tenant: invoice.Tenant{
@@ -226,7 +226,10 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 								Source: s.memoryProduct.Source,
 								Target: s.memoryProduct.Target.String,
 							},
-							Quantity:     quantity,
+							Quantity:     quantity * stampsInTimerange,
+							QuantityMin:  quantity,
+							QuantityAvg:  quantity,
+							QuantityMax:  quantity,
 							Unit:         s.memoryProduct.Unit,
 							PricePerUnit: s.memoryProduct.Amount,
 							Discount:     s.memoryDiscount.Discount,
@@ -242,12 +245,12 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 
 	t.Run("InvoiceForUmbrellaCorp", func(t *testing.T) {
 		inv := invRun[1]
-		const memP12Quantity = float64(4000) * stampsInTimerange
-		memP12Total := memP12Quantity * s.memoryProduct.Amount * discountToMultiplier(s.memoryDiscount.Discount)
-		const storP12Quantity = float64(12) * stampsInTimerange
-		storP12Total := storP12Quantity * s.storageProduct.Amount * discountToMultiplier(s.storageDiscount.Discount)
-		const memNestQuantity = float64(1000) * stampsInTimerange
-		memNestTotal := memNestQuantity * s.memoryProduct.Amount * discountToMultiplier(s.memoryDiscount.Discount)
+		const memP12Quantity = float64(4000)
+		memP12Total := memP12Quantity * stampsInTimerange * s.memoryProduct.Amount * discountToMultiplier(s.memoryDiscount.Discount)
+		const storP12Quantity = float64(12)
+		storP12Total := storP12Quantity * stampsInTimerange * s.storageProduct.Amount * discountToMultiplier(s.storageDiscount.Discount)
+		const memNestQuantity = float64(1000)
+		memNestTotal := memNestQuantity * stampsInTimerange * s.memoryProduct.Amount * discountToMultiplier(s.memoryDiscount.Discount)
 
 		require.Equal(t, invoice.Invoice{
 			Tenant: invoice.Tenant{
@@ -270,7 +273,10 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 								Source: s.memoryProduct.Source,
 								Target: s.memoryProduct.Target.String,
 							},
-							Quantity:     memP12Quantity,
+							Quantity:     memP12Quantity * stampsInTimerange,
+							QuantityMin:  memP12Quantity,
+							QuantityAvg:  memP12Quantity,
+							QuantityMax:  memP12Quantity,
 							Unit:         s.memoryProduct.Unit,
 							PricePerUnit: s.memoryProduct.Amount,
 							Discount:     s.memoryDiscount.Discount,
@@ -283,7 +289,10 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 								Source: s.storageProduct.Source,
 								Target: s.storageProduct.Target.String,
 							},
-							Quantity:     storP12Quantity,
+							Quantity:     storP12Quantity * stampsInTimerange,
+							QuantityMin:  storP12Quantity,
+							QuantityAvg:  storP12Quantity,
+							QuantityMax:  storP12Quantity,
 							Unit:         s.storageProduct.Unit,
 							PricePerUnit: s.storageProduct.Amount,
 							Discount:     s.storageDiscount.Discount,
@@ -304,7 +313,10 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 								Source: s.memoryProduct.Source,
 								Target: s.memoryProduct.Target.String,
 							},
-							Quantity:     memNestQuantity,
+							Quantity:     memNestQuantity * stampsInTimerange,
+							QuantityMin:  memNestQuantity,
+							QuantityAvg:  memNestQuantity,
+							QuantityMax:  memNestQuantity,
 							Unit:         s.memoryProduct.Unit,
 							PricePerUnit: s.memoryProduct.Amount,
 							Discount:     s.memoryDiscount.Discount,

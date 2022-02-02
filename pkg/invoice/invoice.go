@@ -38,8 +38,15 @@ type Item struct {
 	Description string
 	// Product describes the product this item is based on.
 	ProductRef
-	// Unit represents the amount of the resource used.
+	// Quantity represents the amount of the resource used.
 	Quantity float64
+	// QuantityMin represents the minimum amount of the resource used.
+	QuantityMin float64
+	// QuantityAvg represents the average amount of the resource used.
+	QuantityAvg float64
+	// QuantityMax represents the maximum amount of the resource used.
+	QuantityMax float64
+
 	// Unit represents the unit of the item. e.g. MiB
 	Unit string
 	// PricePerUnit represents the price per unit in Rappen
@@ -129,7 +136,9 @@ func invoiceForTenant(ctx context.Context, tx *sqlx.Tx, tenant db.Tenant, year i
 func itemsForCategory(ctx context.Context, tx *sqlx.Tx, tenant db.Tenant, category db.Category, year int, month time.Month) ([]Item, error) {
 	var items []Item
 	err := sqlx.SelectContext(ctx, tx, &items,
-		`SELECT queries.description, SUM(facts.quantity) as quantity, products.unit, products.amount AS pricePerUnit, discounts.discount,
+		`SELECT queries.description,
+				SUM(facts.quantity) as quantity, MIN(facts.quantity) as quantitymin, AVG(facts.quantity) as quantityavg, MAX(facts.quantity) as quantitymax,
+				products.unit, products.amount AS pricePerUnit, discounts.discount,
 				products.id as product_ref_id, products.source as product_ref_source, COALESCE(products.target,''::text) as product_ref_target,
 				SUM( facts.quantity * products.amount * ( 1::double precision - discounts.discount ) ) AS total
 			FROM facts
