@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -66,14 +67,21 @@ func newApp() (context.Context, context.CancelFunc, *cli.App) {
 		Commands: []*cli.Command{
 			newMigrateCommand(),
 			newReportCommand(),
+			newCheckMissingCommand(),
 			newInvoiceCommand(),
 		},
 		ExitErrHandler: func(context *cli.Context, err error) {
-			if err != nil {
-				AppLogger(context.Context).WithCallDepth(1).Error(err, "fatal error")
-				os.Exit(1)
-				cli.HandleExitCoder(cli.Exit("", 1))
+			if err == nil {
+				return
 			}
+			// Don't show stack trace if the error is expected (someone called cli.Exit())
+			var exitErr cli.ExitCoder
+			if errors.As(err, &exitErr) {
+				cli.HandleExitCoder(err)
+				return
+			}
+			AppLogger(context.Context).WithCallDepth(1).Error(err, "fatal error")
+			cli.OsExiter(1)
 		},
 	}
 	// There is logr.NewContext(...) which returns a context that carries the logger instance.

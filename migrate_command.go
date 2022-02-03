@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/appuio/appuio-cloud-reporting/pkg/db"
 	"github.com/urfave/cli/v2"
@@ -66,7 +65,7 @@ func (cmd *migrateCommand) execute(context *cli.Context) error {
 
 		// non-zero exit code could be used in scripts
 		if len(pm) > 0 {
-			os.Exit(1)
+			cli.Exit("Pending migrations found.", 1)
 		}
 		return nil
 	}
