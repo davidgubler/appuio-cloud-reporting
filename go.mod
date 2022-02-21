@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/go-logr/logr v1.2.2
-	github.com/go-logr/zapr v1.2.2
+	github.com/go-logr/zapr v1.2.3
 	github.com/google/uuid v1.3.0
 	github.com/jackc/pgconn v1.11.0
 	github.com/jackc/pgtype v1.10.0
