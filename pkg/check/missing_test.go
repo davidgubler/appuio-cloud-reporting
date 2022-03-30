@@ -2,7 +2,6 @@ package check_test
 
 import (
 	"context"
-	"database/sql"
 	"testing"
 
 	"github.com/jmoiron/sqlx"
@@ -54,25 +53,12 @@ func (s *TestSuite) requireMissingTestEntries(t *testing.T, tdb *sqlx.Tx) []chec
 		db.GetNamed(tdb, &productEmptyTarget,
 			"INSERT INTO products (source,target,amount,unit,during) VALUES (:source,:target,:amount,:unit,:during) RETURNING *", db.Product{
 				Source: "test_memory:us-rac-2",
-				Amount: 3,
-				Unit:   "X",
-				During: db.InfiniteRange(),
-			}))
-
-	var productEmptyAmountAndUnit db.Product
-	require.NoError(t,
-		db.GetNamed(tdb, &productEmptyAmountAndUnit,
-			"INSERT INTO products (source,target,amount,unit,during) VALUES (:source,:target,:amount,:unit,:during) RETURNING *", db.Product{
-				Source: "test_storage:us-rac-2",
-				Target: sql.NullString{Valid: true, String: "666"},
 				During: db.InfiniteRange(),
 			}))
 
 	return []check.MissingField{
 		{Table: "categories", MissingField: "target", ID: catEmptyTarget.Id, Source: catEmptyTarget.Source},
-		{Table: "products", MissingField: "amount", ID: productEmptyAmountAndUnit.Id, Source: productEmptyAmountAndUnit.Source},
 		{Table: "products", MissingField: "target", ID: productEmptyTarget.Id, Source: productEmptyTarget.Source},
-		{Table: "products", MissingField: "unit", ID: productEmptyAmountAndUnit.Id, Source: productEmptyAmountAndUnit.Source},
 		{Table: "tenants", MissingField: "target", ID: tenantEmptyTarget.Id, Source: tenantEmptyTarget.Source},
 	}
 }
