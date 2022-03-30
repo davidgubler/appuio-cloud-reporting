@@ -13,7 +13,7 @@ require (
 	github.com/lopezator/migrator v0.3.0
 	github.com/prometheus/client_golang v1.12.1
 	github.com/prometheus/common v0.33.0
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.1
 	github.com/urfave/cli/v2 v2.4.0
 	go.uber.org/zap v1.21.0
 )
