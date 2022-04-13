@@ -48,8 +48,8 @@ sum_over_time(
               "$1",
               "label_appuio_io_organization", "(.*)"
             ),
-            # At least return 125MiB
-            125 * 1024 * 1024
+            # At least return 128MiB
+            128 * 1024 * 1024
           ),
           "product",
           "appuio_cloud_memory",
