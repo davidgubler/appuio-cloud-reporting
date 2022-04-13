@@ -13,20 +13,30 @@ sum_over_time(
             # Get the maximum of requested and used memory.
             # TODO Is there a better way to get the maximum of two vectors?
             (
-              # Select used memory if higher.
               (
-                sum by(cluster_id, namespace) (container_memory_working_set_bytes{image!=""})
-                # IMPORTANT: one clause must use equal. If used grater and lesser than, equal values will be dropped.
-                >=
-                sum by(cluster_id, namespace) (kube_pod_container_resource_requests{resource="memory"})
+                # Select used memory if higher.
+                (
+                  sum by(cluster_id, namespace) (container_memory_working_set_bytes{image!=""})
+                  # IMPORTANT: one clause must use equal. If used grater and lesser than, equal values will be dropped.
+                  >=
+                  sum by(cluster_id, namespace) (kube_pod_container_resource_requests{resource="memory"})
+                )
+                or
+                # Select reserved memory if higher.
+                (
+                  sum by(cluster_id, namespace) (container_memory_working_set_bytes{image!=""})
+                  <
+                  sum by(cluster_id, namespace) (kube_pod_container_resource_requests{resource="memory"})
+                )
               )
-              or
-              # Select reserved memory if higher.
-              (
-                sum by(cluster_id, namespace) (container_memory_working_set_bytes{image!=""})
-                <
-                sum by(cluster_id, namespace) (kube_pod_container_resource_requests{resource="memory"})
-              )
+              # Add CPU requests in violation to the ratio provided by the platform.
+              + clamp_min(
+                  # Convert CPU request to their memory equivalent.
+                  sum by(cluster_id, namespace) (kube_pod_container_resource_requests{resource="cpu"} * 4 * 1024 * 1024 * 1024)
+                  # Subtract memory request
+                  - sum by(cluster_id, namespace) (kube_pod_container_resource_requests{resource="memory"}
+              # Only values above zero are in violation.
+              ), 0)
             )
             *
             # Join namespace label `label_appuio_io_organization` as `tenant_id`.
