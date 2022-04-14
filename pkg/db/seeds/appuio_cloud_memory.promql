@@ -32,7 +32,16 @@ sum_over_time(
               # Add CPU requests in violation to the ratio provided by the platform.
               + clamp_min(
                   # Convert CPU request to their memory equivalent.
-                  sum by(cluster_id, namespace) (kube_pod_container_resource_requests{resource="cpu"} * 4 * 1024 * 1024 * 1024)
+                  sum by(cluster_id, namespace) (
+                    kube_pod_container_resource_requests{resource="cpu"}
+                    # Build that ratio from static values
+                    * on(cluster_id) group_left()(
+                      # Build a time series of ratio for Cloudscale LPG 2 (4096 MiB/core)
+                      label_replace(vector(4294967296), "cluster_id", "c-appuio-cloudscale-lpg-2", "", "")
+                      # Build a time series of ratio for Exoscale GVA-2 0 (5086 MiB/core)
+                      or label_replace(vector(5333057536), "cluster_id", "c-appuio-exoscale-ch-gva-2-0", "", "")
+                    )
+                  )
                   # Subtract memory request
                   - sum by(cluster_id, namespace) (kube_pod_container_resource_requests{resource="memory"}
               # Only values above zero are in violation.
