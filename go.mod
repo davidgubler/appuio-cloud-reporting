@@ -9,7 +9,7 @@ require (
 	github.com/jackc/pgconn v1.12.0
 	github.com/jackc/pgtype v1.11.0
 	github.com/jackc/pgx/v4 v4.16.0
-	github.com/jmoiron/sqlx v1.3.4
+	github.com/jmoiron/sqlx v1.3.5
 	github.com/lopezator/migrator v0.3.0
 	github.com/prometheus/client_golang v1.12.1
 	github.com/prometheus/common v0.34.0
