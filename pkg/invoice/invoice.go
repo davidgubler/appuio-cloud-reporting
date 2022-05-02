@@ -46,7 +46,6 @@ type Item struct {
 	QuantityAvg float64
 	// QuantityMax represents the maximum amount of the resource used.
 	QuantityMax float64
-
 	// Unit represents the unit of the item. e.g. MiB
 	Unit string
 	// PricePerUnit represents the price per unit in Rappen
@@ -57,6 +56,12 @@ type Item struct {
 	// (hour1 * quantity * price per unit * discount) + (hour2 * quantity * price
 	// per unit * discount)
 	Total float64
+
+	// QueryID is the id of the query that generated this item
+	QueryID string `db:"query_id"`
+	// SubItems are entries created by the subqueries of the main invoice item.
+	// Product information such as ProductRef, Unit, and Discount will always equal to them main item.
+	SubItems []Item
 }
 
 // Tenant represents a tenant in the invoice.
@@ -136,7 +141,7 @@ func invoiceForTenant(ctx context.Context, tx *sqlx.Tx, tenant db.Tenant, year i
 func itemsForCategory(ctx context.Context, tx *sqlx.Tx, tenant db.Tenant, category db.Category, year int, month time.Month) ([]Item, error) {
 	var items []Item
 	err := sqlx.SelectContext(ctx, tx, &items,
-		`SELECT queries.description,
+		`SELECT queries.description, queries.id as query_id,
 				SUM(facts.quantity) as quantity, MIN(facts.quantity) as quantitymin, AVG(facts.quantity) as quantityavg, MAX(facts.quantity) as quantitymax,
 				products.unit, products.amount AS pricePerUnit, discounts.discount,
 				products.id as product_ref_id, products.source as product_ref_source, COALESCE(products.target,''::text) as product_ref_target,
@@ -152,14 +157,38 @@ func itemsForCategory(ctx context.Context, tx *sqlx.Tx, tenant db.Tenant, catego
 				AND facts.tenant_id = $3
 				AND facts.category_id = $4
         AND subqueries.parent_id is NULL
-			GROUP BY queries.description, products.amount, products.unit, products.id, products.source, products.target, discounts.discount
+			GROUP BY queries.id, products.amount, products.unit, products.id, products.source, products.target, discounts.discount
 		`,
 		year, int(month), tenant.Id, category.Id)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to load item for %q/%q at %d %s: %w", tenant.Source, category.Source, year, month.String(), err)
 	}
-
+	for i := range items {
+		err = sqlx.SelectContext(ctx, tx, &items[i].SubItems,
+			`SELECT queries.description, queries.id as query_id,
+				SUM(facts.quantity) as quantity, MIN(facts.quantity) as quantitymin, AVG(facts.quantity) as quantityavg, MAX(facts.quantity) as quantitymax,
+				products.unit, products.amount AS pricePerUnit, discounts.discount,
+				products.id as product_ref_id, products.source as product_ref_source, COALESCE(products.target,''::text) as product_ref_target,
+				SUM( facts.quantity * products.amount * ( 1::double precision - discounts.discount ) ) AS total
+			FROM facts
+				INNER JOIN tenants    ON (facts.tenant_id = tenants.id)
+				INNER JOIN queries    ON (facts.query_id = queries.id)
+				LEFT  JOIN subqueries ON (subqueries.query_id = queries.id)
+				INNER JOIN discounts  ON (facts.discount_id = discounts.id)
+				INNER JOIN products   ON (facts.product_id = products.id)
+				INNER JOIN date_times ON (facts.date_time_id = date_times.id)
+			WHERE date_times.year = $1 AND date_times.month = $2
+				AND facts.tenant_id = $3
+				AND facts.category_id = $4
+        AND subqueries.parent_id = $5
+			GROUP BY queries.id, products.amount, products.unit, products.id, products.source, products.target, discounts.discount
+		`,
+			year, int(month), tenant.Id, category.Id, items[i].QueryID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load sub items for %q/%q/%q at %d %s: %w", tenant.Source, category.Source, items[i].Description, year, month.String(), err)
+		}
+	}
 	return items, nil
 }
 

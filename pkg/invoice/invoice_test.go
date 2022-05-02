@@ -257,6 +257,7 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 							PricePerUnit: s.memoryProduct.Amount,
 							Discount:     s.memoryDiscount.Discount,
 							Total:        total,
+							QueryID:      s.memoryQuery.Id,
 						},
 					},
 					Total: total,
@@ -270,6 +271,8 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 		inv := invRun[1]
 		const memP12Quantity = float64(4000)
 		memP12Total := memP12Quantity * stampsInTimerange * s.memoryProduct.Amount * discountToMultiplier(s.memoryDiscount.Discount)
+		const subMemP12Quantity = float64(1337)
+		subMemP12Total := subMemP12Quantity * stampsInTimerange * s.memoryProduct.Amount * discountToMultiplier(s.memoryDiscount.Discount)
 		const storP12Quantity = float64(12)
 		storP12Total := storP12Quantity * stampsInTimerange * s.storageProduct.Amount * discountToMultiplier(s.storageDiscount.Discount)
 		const memNestQuantity = float64(1000)
@@ -304,6 +307,26 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 							PricePerUnit: s.memoryProduct.Amount,
 							Discount:     s.memoryDiscount.Discount,
 							Total:        memP12Total,
+							QueryID:      s.memoryQuery.Id,
+							SubItems: []invoice.Item{
+								{
+									Description: s.memorySubQuery.Description,
+									ProductRef: invoice.ProductRef{
+										ID:     s.memoryProduct.Id,
+										Source: s.memoryProduct.Source,
+										Target: s.memoryProduct.Target.String,
+									},
+									Quantity:     subMemP12Quantity * stampsInTimerange,
+									QuantityMin:  subMemP12Quantity,
+									QuantityAvg:  subMemP12Quantity,
+									QuantityMax:  subMemP12Quantity,
+									Unit:         s.memoryProduct.Unit,
+									PricePerUnit: s.memoryProduct.Amount,
+									Discount:     s.memoryDiscount.Discount,
+									Total:        subMemP12Total,
+									QueryID:      s.memorySubQuery.Id,
+								},
+							},
 						},
 						{
 							Description: s.storageQuery.Description,
@@ -320,6 +343,7 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 							PricePerUnit: s.storageProduct.Amount,
 							Discount:     s.storageDiscount.Discount,
 							Total:        storP12Total,
+							QueryID:      s.storageQuery.Id,
 						},
 					},
 					Total: memP12Total + storP12Total,
@@ -344,6 +368,7 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 							PricePerUnit: s.memoryProduct.Amount,
 							Discount:     s.memoryDiscount.Discount,
 							Total:        memNestTotal,
+							QueryID:      s.memoryQuery.Id,
 						},
 					},
 					Total: memNestTotal,
