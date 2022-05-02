@@ -23,8 +23,9 @@ type InvoiceSuite struct {
 	memoryDiscount  db.Discount
 	storageDiscount db.Discount
 
-	memoryQuery  db.Query
-	storageQuery db.Query
+	memoryQuery    db.Query
+	memorySubQuery db.Query
+	storageQuery   db.Query
 
 	umbrellaCorpTenant db.Tenant
 	tricellTenant      db.Tenant
@@ -81,6 +82,18 @@ func (s *InvoiceSuite) SetupSuite() {
 				Description: "Memory",
 				Unit:        "MiB",
 			}))
+	require.NoError(t,
+		db.GetNamed(tdb, &s.memorySubQuery,
+			"INSERT INTO queries (name,description,unit,query) VALUES (:name,:description,:unit,:query) RETURNING *", db.Query{
+				Name:        "test_sub_memory",
+				Description: "Sub Memory",
+				Unit:        "MiB",
+			}))
+	_, err := tdb.Exec(
+		"INSERT INTO subqueries (query_id, parent_id) VALUES ($1, $2)",
+		s.memorySubQuery.Id, s.memoryQuery.Id,
+	)
+	require.NoError(t, err)
 	require.NoError(t,
 		db.GetNamed(tdb, &s.storageQuery,
 			"INSERT INTO queries (name,description,unit,query) VALUES (:name,:description,:unit,:query) RETURNING *", db.Query{
@@ -142,6 +155,16 @@ func (s *InvoiceSuite) SetupSuite() {
 		CategoryId: s.p12aCategory.Id,
 
 		Quantity: 4000,
+	}, s.dateTimes)...)
+	facts = append(facts, factWithDateTime(db.Fact{
+		QueryId:    s.memorySubQuery.Id,
+		ProductId:  s.memoryProduct.Id,
+		DiscountId: s.memoryDiscount.Id,
+
+		TenantId:   s.umbrellaCorpTenant.Id,
+		CategoryId: s.p12aCategory.Id,
+
+		Quantity: 1337,
 	}, s.dateTimes)...)
 
 	facts = append(facts, factWithDateTime(db.Fact{
