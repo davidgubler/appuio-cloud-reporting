@@ -143,7 +143,7 @@ func (s *ReportSuite) TestReport_RunReportCreatesFact() {
 func (s *ReportSuite) TestReport_RunReportCreatesSubFact() {
 	t := s.T()
 	prom := s.PrometheusAPIClient()
-  tdb := s.DB()
+	tdb := s.DB()
 	s.createProduct(tdb, "bar-product:my-cluster")
 	disc := db.Discount{}
 	require.NoError(t,
@@ -153,7 +153,7 @@ func (s *ReportSuite) TestReport_RunReportCreatesSubFact() {
 				Discount: 0,
 				During:   infiniteRange(),
 			}))
-  query := db.Query{}
+	query := db.Query{}
 	require.NoError(t,
 		db.GetNamed(tdb, &query,
 			"INSERT INTO queries (name,description,query,unit,during) VALUES (:name,:description,:query,:unit,:during) RETURNING *", db.Query{
@@ -162,7 +162,7 @@ func (s *ReportSuite) TestReport_RunReportCreatesSubFact() {
 				Unit:   "tps",
 				During: infiniteRange(),
 			}))
-  subquery := db.Query{}
+	subquery := db.Query{}
 	require.NoError(t,
 		db.GetNamed(tdb, &subquery,
 			"INSERT INTO queries (name,description,query,unit,during) VALUES (:name,:description,:query,:unit,:during) RETURNING *", db.Query{
@@ -186,7 +186,7 @@ func (s *ReportSuite) TestReport_RunReportCreatesSubFact() {
 	require.NoError(t, report.Run(context.Background(), tx, prom, query.Name, ts, report.WithPrometheusQueryTimeout(time.Second)))
 	fact := s.requireFactForQueryIdAndProductSource(tx, query, "bar-product:my-cluster", ts)
 	require.Equal(t, float64(defaultQueryReturnValue), fact.Quantity)
-  subfact := s.requireFactForQueryIdAndProductSource(tx, subquery, "bar-product:my-cluster", ts)
+	subfact := s.requireFactForQueryIdAndProductSource(tx, subquery, "bar-product:my-cluster", ts)
 	require.Equal(t, float64(defaultSubQueryReturnValue), subfact.Quantity)
 }
 
