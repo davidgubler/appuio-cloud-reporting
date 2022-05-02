@@ -25,6 +25,7 @@ type ReportSuite struct {
 }
 
 const defaultQueryReturnValue = 42
+const defaultSubQueryReturnValue = 13
 const promTestquery = `
 	label_replace(
 		label_replace(
@@ -33,6 +34,18 @@ const promTestquery = `
 				"category", "my-cluster:my-namespace", "", ""
 			),
 			"product", "my-product:my-cluster:my-tenant:my-namespace", "", ""
+		),
+		"tenant", "my-tenant", "", ""
+	)
+`
+const promBarTestquery = `
+	label_replace(
+		label_replace(
+			label_replace(
+				vector(%d),
+				"category", "my-cluster:my-namespace", "", ""
+			),
+			"product", "bar-product:my-cluster:my-tenant:my-namespace", "", ""
 		),
 		"tenant", "my-tenant", "", ""
 	)
@@ -62,6 +75,7 @@ func (s *ReportSuite) SetupSuite() {
 				Unit:   "tps",
 				During: infiniteRange(),
 			}))
+
 }
 
 func (s *ReportSuite) TestReport_ReturnsErrorIfTimestampContainsUnitsSmallerOneHour() {
@@ -124,6 +138,56 @@ func (s *ReportSuite) TestReport_RunReportCreatesFact() {
 	require.NoError(t, report.Run(context.Background(), tx, prom, query.Name, ts, report.WithPrometheusQueryTimeout(time.Second)))
 	fact := s.requireFactForQueryIdAndProductSource(tx, query, "my-product:my-cluster", ts)
 	require.Equal(t, float64(defaultQueryReturnValue), fact.Quantity)
+}
+
+func (s *ReportSuite) TestReport_RunReportCreatesSubFact() {
+	t := s.T()
+	prom := s.PrometheusAPIClient()
+  tdb := s.DB()
+	s.createProduct(tdb, "bar-product:my-cluster")
+	disc := db.Discount{}
+	require.NoError(t,
+		db.GetNamed(tdb, &disc,
+			"INSERT INTO discounts (source,discount,during) VALUES (:source,:discount,:during) RETURNING *", db.Discount{
+				Source:   "bar-product",
+				Discount: 0,
+				During:   infiniteRange(),
+			}))
+  query := db.Query{}
+	require.NoError(t,
+		db.GetNamed(tdb, &query,
+			"INSERT INTO queries (name,description,query,unit,during) VALUES (:name,:description,:query,:unit,:during) RETURNING *", db.Query{
+				Name:   "bar",
+				Query:  fmt.Sprintf(promBarTestquery, defaultQueryReturnValue),
+				Unit:   "tps",
+				During: infiniteRange(),
+			}))
+  subquery := db.Query{}
+	require.NoError(t,
+		db.GetNamed(tdb, &subquery,
+			"INSERT INTO queries (name,description,query,unit,during) VALUES (:name,:description,:query,:unit,:during) RETURNING *", db.Query{
+				Name:   "sub-bar",
+				Query:  fmt.Sprintf(promBarTestquery, defaultSubQueryReturnValue),
+				Unit:   "tps",
+				During: infiniteRange(),
+			}))
+
+	_, err := tdb.Exec(
+		"INSERT INTO subqueries (query_id, parent_id) VALUES ($1, $2)",
+		subquery.Id, query.Id,
+	)
+	require.NoError(t, err)
+
+	tx, err := s.DB().Beginx()
+	require.NoError(t, err)
+	defer tx.Rollback()
+
+	ts := time.Now().Truncate(time.Hour)
+	require.NoError(t, report.Run(context.Background(), tx, prom, query.Name, ts, report.WithPrometheusQueryTimeout(time.Second)))
+	fact := s.requireFactForQueryIdAndProductSource(tx, query, "bar-product:my-cluster", ts)
+	require.Equal(t, float64(defaultQueryReturnValue), fact.Quantity)
+  subfact := s.requireFactForQueryIdAndProductSource(tx, subquery, "bar-product:my-cluster", ts)
+	require.Equal(t, float64(defaultSubQueryReturnValue), subfact.Quantity)
 }
 
 func (s *ReportSuite) TestReport_RunReportNonLockingUpsert() {
