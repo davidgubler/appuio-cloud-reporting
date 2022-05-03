@@ -25,9 +25,10 @@ type InvoiceSuite struct {
 	memoryDiscount  db.Discount
 	storageDiscount db.Discount
 
-	memoryQuery    db.Query
-	memorySubQuery db.Query
-	storageQuery   db.Query
+	memoryQuery         db.Query
+	memorySubQuery      db.Query
+	memoryOtherSubQuery db.Query
+	storageQuery        db.Query
 
 	umbrellaCorpTenant db.Tenant
 	tricellTenant      db.Tenant
@@ -94,6 +95,17 @@ func (s *InvoiceSuite) SetupSuite() {
 				Name:        "test_sub_memory",
 				Description: "Sub Memory",
 				Unit:        "MiB",
+			}))
+	require.NoError(t,
+		db.GetNamed(tdb, &s.memoryOtherSubQuery,
+			"INSERT INTO queries (parent_id,name,description,unit,query) VALUES (:parent_id,:name,:description,:unit,:query) RETURNING *", db.Query{
+				ParentID: sql.NullString{
+					String: s.memoryQuery.Id,
+					Valid:  true,
+				},
+				Name:        "test_other_sub_memory",
+				Description: "Other Sub Memory",
+				Unit:        "core",
 			}))
 
 	require.NoError(t,
@@ -167,6 +179,16 @@ func (s *InvoiceSuite) SetupSuite() {
 		CategoryId: s.p12aCategory.Id,
 
 		Quantity: 1337,
+	}, s.dateTimes)...)
+	facts = append(facts, factWithDateTime(db.Fact{
+		QueryId:    s.memoryOtherSubQuery.Id,
+		ProductId:  s.memoryProduct.Id,
+		DiscountId: s.memoryDiscount.Id,
+
+		TenantId:   s.umbrellaCorpTenant.Id,
+		CategoryId: s.p12aCategory.Id,
+
+		Quantity: 42,
 	}, s.dateTimes)...)
 
 	facts = append(facts, factWithDateTime(db.Fact{
@@ -259,7 +281,6 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 							PricePerUnit: s.memoryProduct.Amount,
 							Discount:     s.memoryDiscount.Discount,
 							Total:        total,
-							QueryID:      s.memoryQuery.Id,
 						},
 					},
 					Total: total,
@@ -275,6 +296,8 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 		memP12Total := memP12Quantity * stampsInTimerange * s.memoryProduct.Amount * discountToMultiplier(s.memoryDiscount.Discount)
 		const subMemP12Quantity = float64(1337)
 		subMemP12Total := subMemP12Quantity * stampsInTimerange * s.memoryProduct.Amount * discountToMultiplier(s.memoryDiscount.Discount)
+		const otherSubMemP12Quantity = float64(42)
+		otherSubMemP12Total := otherSubMemP12Quantity * stampsInTimerange * s.memoryProduct.Amount * discountToMultiplier(s.memoryDiscount.Discount)
 		const storP12Quantity = float64(12)
 		storP12Total := storP12Quantity * stampsInTimerange * s.storageProduct.Amount * discountToMultiplier(s.storageDiscount.Discount)
 		const memNestQuantity = float64(1000)
@@ -309,7 +332,6 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 							PricePerUnit: s.storageProduct.Amount,
 							Discount:     s.storageDiscount.Discount,
 							Total:        storP12Total,
-							QueryID:      s.storageQuery.Id,
 						},
 						{
 							Description: s.memoryQuery.Description,
@@ -326,7 +348,6 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 							PricePerUnit: s.memoryProduct.Amount,
 							Discount:     s.memoryDiscount.Discount,
 							Total:        memP12Total,
-							QueryID:      s.memoryQuery.Id,
 							SubItems: []invoice.Item{
 								{
 									Description: s.memorySubQuery.Description,
@@ -343,7 +364,22 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 									PricePerUnit: s.memoryProduct.Amount,
 									Discount:     s.memoryDiscount.Discount,
 									Total:        subMemP12Total,
-									QueryID:      s.memorySubQuery.Id,
+								},
+								{
+									Description: s.memoryOtherSubQuery.Description,
+									ProductRef: invoice.ProductRef{
+										ID:     s.memoryProduct.Id,
+										Source: s.memoryProduct.Source,
+										Target: s.memoryProduct.Target.String,
+									},
+									Quantity:     otherSubMemP12Quantity * stampsInTimerange,
+									QuantityMin:  otherSubMemP12Quantity,
+									QuantityAvg:  otherSubMemP12Quantity,
+									QuantityMax:  otherSubMemP12Quantity,
+									Unit:         s.memoryProduct.Unit,
+									PricePerUnit: s.memoryProduct.Amount,
+									Discount:     s.memoryDiscount.Discount,
+									Total:        otherSubMemP12Total,
 								},
 							},
 						},
@@ -370,7 +406,6 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 							PricePerUnit: s.memoryProduct.Amount,
 							Discount:     s.memoryDiscount.Discount,
 							Total:        memNestTotal,
-							QueryID:      s.memoryQuery.Id,
 						},
 					},
 					Total: memNestTotal,
@@ -406,11 +441,11 @@ func sortInvoice(inv *invoice.Invoice) {
 	})
 	for catIter := range inv.Categories {
 		sort.Slice(inv.Categories[catIter].Items, func(i, j int) bool {
-			return inv.Categories[catIter].Items[i].ID < inv.Categories[catIter].Items[j].ID
+			return inv.Categories[catIter].Items[i].Description < inv.Categories[catIter].Items[j].Description
 		})
 		for itemIter := range inv.Categories[catIter].Items {
 			sort.Slice(inv.Categories[catIter].Items[itemIter].SubItems, func(i, j int) bool {
-				return inv.Categories[catIter].Items[itemIter].SubItems[i].ID < inv.Categories[catIter].Items[itemIter].SubItems[j].ID
+				return inv.Categories[catIter].Items[itemIter].SubItems[i].Description < inv.Categories[catIter].Items[itemIter].SubItems[j].Description
 			})
 		}
 	}

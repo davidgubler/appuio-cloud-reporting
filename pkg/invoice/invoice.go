@@ -3,6 +3,7 @@ package invoice
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -56,9 +57,6 @@ type Item struct {
 	// (hour1 * quantity * price per unit * discount) + (hour2 * quantity * price
 	// per unit * discount)
 	Total float64
-
-	// QueryID is the id of the query that generated this item
-	QueryID string `db:"query_id"`
 	// SubItems are entries created by the subqueries of the main invoice item.
 	// Product information such as ProductRef, Unit, and Discount will always equal to them main item.
 	SubItems []Item
@@ -138,10 +136,20 @@ func invoiceForTenant(ctx context.Context, tx *sqlx.Tx, tenant db.Tenant, year i
 	}, nil
 }
 
+// rawItem is a line item with additional internal fields for querying.
+// This way we do not needlessly expose (and test) internal IDs.
+type rawItem struct {
+	Item
+	// QueryID is the id of the query that generated this item
+	QueryID string `db:"query_id"`
+	// ParentQueryID is the id of the parent-query of the query that generated this item
+	ParentQueryID sql.NullString `db:"parent_query_id"`
+}
+
 func itemsForCategory(ctx context.Context, tx *sqlx.Tx, tenant db.Tenant, category db.Category, year int, month time.Month) ([]Item, error) {
-	var items []Item
+	var items []rawItem
 	err := sqlx.SelectContext(ctx, tx, &items,
-		`SELECT queries.description, queries.id as query_id,
+		`SELECT queries.description, queries.id as query_id, queries.parent_id as parent_query_id,
 				SUM(facts.quantity) as quantity, MIN(facts.quantity) as quantitymin, AVG(facts.quantity) as quantityavg, MAX(facts.quantity) as quantitymax,
 				products.unit, products.amount AS pricePerUnit, discounts.discount,
 				products.id as product_ref_id, products.source as product_ref_source, COALESCE(products.target,''::text) as product_ref_target,
@@ -155,7 +163,6 @@ func itemsForCategory(ctx context.Context, tx *sqlx.Tx, tenant db.Tenant, catego
 			WHERE date_times.year = $1 AND date_times.month = $2
 				AND facts.tenant_id = $3
 				AND facts.category_id = $4
-        AND queries.parent_id is NULL
 			GROUP BY queries.id, products.amount, products.unit, products.id, products.source, products.target, discounts.discount
 		`,
 		year, int(month), tenant.Id, category.Id)
@@ -163,31 +170,34 @@ func itemsForCategory(ctx context.Context, tx *sqlx.Tx, tenant db.Tenant, catego
 	if err != nil {
 		return nil, fmt.Errorf("failed to load item for %q/%q at %d %s: %w", tenant.Source, category.Source, year, month.String(), err)
 	}
-	for i := range items {
-		err = sqlx.SelectContext(ctx, tx, &items[i].SubItems,
-			`SELECT queries.description, queries.id as query_id,
-				SUM(facts.quantity) as quantity, MIN(facts.quantity) as quantitymin, AVG(facts.quantity) as quantityavg, MAX(facts.quantity) as quantitymax,
-				products.unit, products.amount AS pricePerUnit, discounts.discount,
-				products.id as product_ref_id, products.source as product_ref_source, COALESCE(products.target,''::text) as product_ref_target,
-				SUM( facts.quantity * products.amount * ( 1::double precision - discounts.discount ) ) AS total
-			FROM facts
-				INNER JOIN tenants    ON (facts.tenant_id = tenants.id)
-				INNER JOIN queries    ON (facts.query_id = queries.id)
-				INNER JOIN discounts  ON (facts.discount_id = discounts.id)
-				INNER JOIN products   ON (facts.product_id = products.id)
-				INNER JOIN date_times ON (facts.date_time_id = date_times.id)
-			WHERE date_times.year = $1 AND date_times.month = $2
-				AND facts.tenant_id = $3
-				AND facts.category_id = $4
-        AND queries.parent_id = $5
-			GROUP BY queries.id, products.amount, products.unit, products.id, products.source, products.target, discounts.discount
-		`,
-			year, int(month), tenant.Id, category.Id, items[i].QueryID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load sub items for %q/%q/%q at %d %s: %w", tenant.Source, category.Source, items[i].Description, year, month.String(), err)
+
+	return buildItemHirarchy(items), nil
+}
+
+// buildItemHirarchy takes a flat list of raw items containing items and sub-items and returns a list of items containing their corresponding sub-items.
+// It will drop any sub-item without a matching main item.
+func buildItemHirarchy(items []rawItem) []Item {
+	mainItems := map[string]Item{}
+	for _, item := range items {
+		if !item.ParentQueryID.Valid {
+			mainItems[item.QueryID] = item.Item
 		}
 	}
-	return items, nil
+	for _, item := range items {
+		if item.ParentQueryID.Valid {
+			pqid := item.ParentQueryID.String
+			parent, ok := mainItems[pqid]
+			if ok {
+				parent.SubItems = append(parent.SubItems, item.Item)
+				mainItems[item.ParentQueryID.String] = parent
+			}
+		}
+	}
+	var res []Item
+	for _, it := range mainItems {
+		res = append(res, it)
+	}
+	return res
 }
 
 func tenantsForPeriod(ctx context.Context, tx *sqlx.Tx, year int, month time.Month) ([]db.Tenant, error) {
