@@ -149,14 +149,13 @@ func itemsForCategory(ctx context.Context, tx *sqlx.Tx, tenant db.Tenant, catego
 			FROM facts
 				INNER JOIN tenants    ON (facts.tenant_id = tenants.id)
 				INNER JOIN queries    ON (facts.query_id = queries.id)
-				LEFT  JOIN subqueries ON (subqueries.query_id = queries.id)
 				INNER JOIN discounts  ON (facts.discount_id = discounts.id)
 				INNER JOIN products   ON (facts.product_id = products.id)
 				INNER JOIN date_times ON (facts.date_time_id = date_times.id)
 			WHERE date_times.year = $1 AND date_times.month = $2
 				AND facts.tenant_id = $3
 				AND facts.category_id = $4
-        AND subqueries.parent_id is NULL
+        AND queries.parent_id is NULL
 			GROUP BY queries.id, products.amount, products.unit, products.id, products.source, products.target, discounts.discount
 		`,
 		year, int(month), tenant.Id, category.Id)
@@ -174,14 +173,13 @@ func itemsForCategory(ctx context.Context, tx *sqlx.Tx, tenant db.Tenant, catego
 			FROM facts
 				INNER JOIN tenants    ON (facts.tenant_id = tenants.id)
 				INNER JOIN queries    ON (facts.query_id = queries.id)
-				LEFT  JOIN subqueries ON (subqueries.query_id = queries.id)
 				INNER JOIN discounts  ON (facts.discount_id = discounts.id)
 				INNER JOIN products   ON (facts.product_id = products.id)
 				INNER JOIN date_times ON (facts.date_time_id = date_times.id)
 			WHERE date_times.year = $1 AND date_times.month = $2
 				AND facts.tenant_id = $3
 				AND facts.category_id = $4
-        AND subqueries.parent_id = $5
+        AND queries.parent_id = $5
 			GROUP BY queries.id, products.amount, products.unit, products.id, products.source, products.target, discounts.discount
 		`,
 			year, int(month), tenant.Id, category.Id, items[i].QueryID)

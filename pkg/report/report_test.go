@@ -2,6 +2,7 @@ package report_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"testing"
 	"time"
@@ -165,18 +166,16 @@ func (s *ReportSuite) TestReport_RunReportCreatesSubFact() {
 	subquery := db.Query{}
 	require.NoError(t,
 		db.GetNamed(tdb, &subquery,
-			"INSERT INTO queries (name,description,query,unit,during) VALUES (:name,:description,:query,:unit,:during) RETURNING *", db.Query{
+			"INSERT INTO queries (parent_id,name,description,query,unit,during) VALUES (:parent_id,:name,:description,:query,:unit,:during) RETURNING *", db.Query{
+				ParentID: sql.NullString{
+					String: query.Id,
+					Valid:  true,
+				},
 				Name:   "sub-bar",
 				Query:  fmt.Sprintf(promBarTestquery, defaultSubQueryReturnValue),
 				Unit:   "tps",
 				During: infiniteRange(),
 			}))
-
-	_, err := tdb.Exec(
-		"INSERT INTO subqueries (query_id, parent_id) VALUES ($1, $2)",
-		subquery.Id, query.Id,
-	)
-	require.NoError(t, err)
 
 	tx, err := s.DB().Beginx()
 	require.NoError(t, err)

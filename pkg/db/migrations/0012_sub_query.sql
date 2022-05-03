@@ -1,14 +1,5 @@
-CREATE TABLE subqueries (
-  query_id      uuid NOT NULL,
-  parent_id     uuid NOT NULL,
-
-  CONSTRAINT fk_query
-    FOREIGN KEY(query_id)
-    REFERENCES queries(id),
-
-  CONSTRAINT fk_parent
+ALTER TABLE queries
+  ADD COLUMN parent_id uuid,
+  ADD CONSTRAINT pt_query
     FOREIGN KEY(parent_id)
-    REFERENCES queries(id),
-
-  UNIQUE(query_id,parent_id)
-)
+    REFERENCES queries(id);

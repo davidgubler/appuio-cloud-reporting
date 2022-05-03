@@ -84,16 +84,16 @@ func (s *InvoiceSuite) SetupSuite() {
 			}))
 	require.NoError(t,
 		db.GetNamed(tdb, &s.memorySubQuery,
-			"INSERT INTO queries (name,description,unit,query) VALUES (:name,:description,:unit,:query) RETURNING *", db.Query{
+			"INSERT INTO queries (parent_id,name,description,unit,query) VALUES (:parent_id,:name,:description,:unit,:query) RETURNING *", db.Query{
+				ParentID: sql.NullString{
+					String: s.memoryQuery.Id,
+					Valid:  true,
+				},
 				Name:        "test_sub_memory",
 				Description: "Sub Memory",
 				Unit:        "MiB",
 			}))
-	_, err := tdb.Exec(
-		"INSERT INTO subqueries (query_id, parent_id) VALUES ($1, $2)",
-		s.memorySubQuery.Id, s.memoryQuery.Id,
-	)
-	require.NoError(t, err)
+
 	require.NoError(t,
 		db.GetNamed(tdb, &s.storageQuery,
 			"INSERT INTO queries (name,description,unit,query) VALUES (:name,:description,:unit,:query) RETURNING *", db.Query{

@@ -60,13 +60,13 @@ func Run(ctx context.Context, tx *sqlx.Tx, prom PromQuerier, queryName string, f
 
 	var subQueries []db.Query
 	if err := sqlx.SelectContext(ctx, tx, &subQueries,
-		"SELECT id, name, description, query, unit, during FROM queries JOIN subqueries ON queries.id = subqueries.query_id WHERE parent_id  = $1 AND (during @> $2::timestamptz)", query.Id, from,
+		"SELECT id, name, description, query, unit, during FROM queries WHERE parent_id  = $1 AND (during @> $2::timestamptz)", query.Id, from,
 	); err != nil {
 		return fmt.Errorf("failed to load subQueries for '%s' at '%s': %w", queryName, from.Format(time.RFC3339), err)
 	}
 	for _, subQuery := range subQueries {
 		if err := runQuery(ctx, tx, prom, subQuery, from, opts); err != nil {
-			return fmt.Errorf("failed to subrun query '%s' at '%s': %w", subQuery.Name, from.Format(time.RFC3339), err)
+			return fmt.Errorf("failed to run subQuery '%s' at '%s': %w", subQuery.Name, from.Format(time.RFC3339), err)
 		}
 	}
 
