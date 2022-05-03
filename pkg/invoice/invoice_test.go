@@ -3,9 +3,11 @@ package invoice_test
 import (
 	"context"
 	"database/sql"
+	"sort"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -228,7 +230,7 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 		const quantity = float64(2000)
 		total := quantity * stampsInTimerange * s.memoryProduct.Amount * discountToMultiplier(s.memoryDiscount.Discount)
 
-		require.Equal(t, invoice.Invoice{
+		invoiceEqual(t, invoice.Invoice{
 			Tenant: invoice.Tenant{
 				ID:     s.tricellTenant.Id,
 				Source: s.tricellTenant.Source,
@@ -278,7 +280,7 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 		const memNestQuantity = float64(1000)
 		memNestTotal := memNestQuantity * stampsInTimerange * s.memoryProduct.Amount * discountToMultiplier(s.memoryDiscount.Discount)
 
-		require.Equal(t, invoice.Invoice{
+		invoiceEqual(t, invoice.Invoice{
 			Tenant: invoice.Tenant{
 				ID:     s.umbrellaCorpTenant.Id,
 				Source: s.umbrellaCorpTenant.Source,
@@ -292,6 +294,23 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 					Source: s.p12aCategory.Source,
 					Target: s.p12aCategory.Target.String,
 					Items: []invoice.Item{
+						{
+							Description: s.storageQuery.Description,
+							ProductRef: invoice.ProductRef{
+								ID:     s.storageProduct.Id,
+								Source: s.storageProduct.Source,
+								Target: s.storageProduct.Target.String,
+							},
+							Quantity:     storP12Quantity * stampsInTimerange,
+							QuantityMin:  storP12Quantity,
+							QuantityAvg:  storP12Quantity,
+							QuantityMax:  storP12Quantity,
+							Unit:         s.storageProduct.Unit,
+							PricePerUnit: s.storageProduct.Amount,
+							Discount:     s.storageDiscount.Discount,
+							Total:        storP12Total,
+							QueryID:      s.storageQuery.Id,
+						},
 						{
 							Description: s.memoryQuery.Description,
 							ProductRef: invoice.ProductRef{
@@ -327,23 +346,6 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 									QueryID:      s.memorySubQuery.Id,
 								},
 							},
-						},
-						{
-							Description: s.storageQuery.Description,
-							ProductRef: invoice.ProductRef{
-								ID:     s.storageProduct.Id,
-								Source: s.storageProduct.Source,
-								Target: s.storageProduct.Target.String,
-							},
-							Quantity:     storP12Quantity * stampsInTimerange,
-							QuantityMin:  storP12Quantity,
-							QuantityAvg:  storP12Quantity,
-							QuantityMax:  storP12Quantity,
-							Unit:         s.storageProduct.Unit,
-							PricePerUnit: s.storageProduct.Amount,
-							Discount:     s.storageDiscount.Discount,
-							Total:        storP12Total,
-							QueryID:      s.storageQuery.Id,
 						},
 					},
 					Total: memP12Total + storP12Total,
@@ -390,4 +392,26 @@ func factWithDateTime(f db.Fact, dts []db.DateTime) []db.Fact {
 		facts = append(facts, f)
 	}
 	return facts
+}
+
+func invoiceEqual(t *testing.T, expInv, inv invoice.Invoice) bool {
+	sortInvoice(&inv)
+	sortInvoice(&expInv)
+	return assert.Equal(t, expInv, inv)
+}
+
+func sortInvoice(inv *invoice.Invoice) {
+	sort.Slice(inv.Categories, func(i, j int) bool {
+		return inv.Categories[i].ID < inv.Categories[j].ID
+	})
+	for catIter := range inv.Categories {
+		sort.Slice(inv.Categories[catIter].Items, func(i, j int) bool {
+			return inv.Categories[catIter].Items[i].ID < inv.Categories[catIter].Items[j].ID
+		})
+		for itemIter := range inv.Categories[catIter].Items {
+			sort.Slice(inv.Categories[catIter].Items[itemIter].SubItems, func(i, j int) bool {
+				return inv.Categories[catIter].Items[itemIter].SubItems[i].ID < inv.Categories[catIter].Items[itemIter].SubItems[j].ID
+			})
+		}
+	}
 }
