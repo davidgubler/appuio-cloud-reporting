@@ -58,8 +58,23 @@ type Item struct {
 	// per unit * discount)
 	Total float64
 	// SubItems are entries created by the subqueries of the main invoice item.
-	// Product information such as ProductRef, Unit, and Discount will always equal to them main item.
-	SubItems []Item
+	SubItems []SubItem
+}
+
+// SubItem reflects additional information created by a subquery of the main invoice item
+type SubItem struct {
+	// Description describes the line item.
+	Description string
+	// Quantity represents the amount of the resource used.
+	Quantity float64
+	// QuantityMin represents the minimum amount of the resource used.
+	QuantityMin float64
+	// QuantityAvg represents the average amount of the resource used.
+	QuantityAvg float64
+	// QuantityMax represents the maximum amount of the resource used.
+	QuantityMax float64
+	// Unit represents the unit of the item. e.g. MiB
+	Unit string
 }
 
 // Tenant represents a tenant in the invoice.
@@ -188,7 +203,14 @@ func buildItemHirarchy(items []rawItem) []Item {
 			pqid := item.ParentQueryID.String
 			parent, ok := mainItems[pqid]
 			if ok {
-				parent.SubItems = append(parent.SubItems, item.Item)
+				parent.SubItems = append(parent.SubItems, SubItem{
+					Description: item.Description,
+					Quantity:    item.Quantity,
+					QuantityMin: item.QuantityMin,
+					QuantityAvg: item.QuantityAvg,
+					QuantityMax: item.QuantityAvg,
+					Unit:        item.Unit,
+				})
 				mainItems[item.ParentQueryID.String] = parent
 			}
 		}
