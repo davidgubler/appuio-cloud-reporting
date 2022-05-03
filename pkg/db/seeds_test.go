@@ -22,14 +22,16 @@ func (s *SeedsTestSuite) TestSeedDefaultQueries() {
 	_, err := d.Exec("DELETE FROM queries")
 	require.NoError(t, err)
 
+	expQueryNum := 5
+
 	count := "SELECT ((SELECT COUNT(*) FROM queries) = $1)"
 	requireQueryTrue(t, d, count, 0)
 	err = db.Seed(d.DB)
 	require.NoError(t, err)
-	requireQueryTrue(t, d, count, len(db.DefaultQueries))
+	requireQueryTrue(t, d, count, expQueryNum)
 	err = db.Seed(d.DB)
 	require.NoError(t, err)
-	requireQueryTrue(t, d, count, len(db.DefaultQueries))
+	requireQueryTrue(t, d, count, expQueryNum)
 }
 
 func requireQueryTrue(t *testing.T, q sqlx.Queryer, query string, args ...interface{}) {

@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 
 	_ "embed"
@@ -11,6 +12,12 @@ import (
 
 //go:embed seeds/appuio_cloud_memory.promql
 var appuioCloudMemoryQuery string
+
+//go:embed seeds/appuio_cloud_memory_sub_memory.promql
+var appuioCloudMemorySubQueryMemory string
+
+//go:embed seeds/appuio_cloud_memory_sub_cpu.promql
+var appuioCloudMemorySubQueryCPU string
 
 //go:embed seeds/appuio_cloud_loadbalancer.promql
 var appuioCloudLoadbalancerQuery string
@@ -25,6 +32,20 @@ var DefaultQueries = []Query{
 		Description: "Memory usage (maximum of requested and used memory) aggregated by namespace",
 		Query:       appuioCloudMemoryQuery,
 		Unit:        "MiB",
+		subQueries: []Query{
+			{
+				Name:        "appuio_cloud_memory_subquery_memory_request",
+				Description: "Memory request aggregated by namespace",
+				Query:       appuioCloudMemorySubQueryMemory,
+				Unit:        "MiB",
+			},
+			{
+				Name:        "appuio_cloud_memory_subquery_cpu_request",
+				Description: "CPU requests exceeding the fair use limit",
+				Query:       appuioCloudMemorySubQueryCPU,
+				Unit:        "MiB",
+			},
+		},
 	},
 	{
 		Name:        "appuio_cloud_loadbalancer",
@@ -58,24 +79,52 @@ func Seed(db *sql.DB) error {
 
 func createDefaultQueries(tx *sqlx.Tx) error {
 	for _, q := range DefaultQueries {
-		exists, err := queryExistsByName(tx, q.Name)
+		id, exists, err := queryExistsByName(tx, q.Name)
 		if err != nil {
 			return fmt.Errorf("error checking if query exists: %w", err)
 		}
 		if exists {
+			q.Id = id
 			fmt.Printf("Found query with name '%s'. Skip creating default query.\n", q.Name)
-			continue
+		} else {
+			err = GetNamed(tx, &q.Id,
+				"INSERT INTO queries (name,description,query,unit,during) VALUES (:name,:description,:query,:unit,'[-infinity,infinity)') RETURNING id",
+				q)
+			if err != nil {
+				return fmt.Errorf("error creating default query: %w", err)
+			}
 		}
-		_, err = tx.NamedExec("INSERT INTO queries (name,description,query,unit,during) VALUES (:name,:description,:query,:unit,'[-infinity,infinity)')", q)
-		if err != nil {
-			return fmt.Errorf("error creating default query: %w", err)
+
+		for _, subQuery := range q.subQueries {
+			subQuery.ParentID = sql.NullString{
+				String: q.Id,
+				Valid:  true,
+			}
+			_, exists, err := queryExistsByName(tx, subQuery.Name)
+			if err != nil {
+				return fmt.Errorf("error checking if sub-query exists: %w", err)
+			}
+			if exists {
+				fmt.Printf("Found sub-query with name '%s'. Skip creating default query.\n", subQuery.Name)
+				continue
+			}
+			_, err = tx.NamedExec("INSERT INTO queries (name,description,query,unit,during) VALUES (:name,:description,:query,:unit,'[-infinity,infinity)')", subQuery)
+			if err != nil {
+				return fmt.Errorf("error creating default sub-query: %w", err)
+			}
 		}
 	}
 	return nil
 }
 
-func queryExistsByName(tx *sqlx.Tx, name string) (bool, error) {
-	var exists bool
-	err := tx.Get(&exists, "SELECT EXISTS(SELECT 1 FROM queries WHERE name = $1)", name)
-	return exists, err
+func queryExistsByName(tx *sqlx.Tx, name string) (string, bool, error) {
+	var id string
+	err := tx.Get(&id, "SELECT id FROM queries WHERE name = $1", name)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, err
+	}
+	return id, true, err
 }

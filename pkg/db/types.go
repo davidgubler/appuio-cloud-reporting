@@ -18,6 +18,8 @@ type Query struct {
 	Unit        string
 
 	During pgtype.Tstzrange
+
+	subQueries []Query
 }
 
 // CreateQuery creates the given query
