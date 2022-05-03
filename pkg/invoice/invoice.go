@@ -186,12 +186,12 @@ func itemsForCategory(ctx context.Context, tx *sqlx.Tx, tenant db.Tenant, catego
 		return nil, fmt.Errorf("failed to load item for %q/%q at %d %s: %w", tenant.Source, category.Source, year, month.String(), err)
 	}
 
-	return buildItemHirarchy(items), nil
+	return buildItemHierarchy(items), nil
 }
 
-// buildItemHirarchy takes a flat list of raw items containing items and sub-items and returns a list of items containing their corresponding sub-items.
+// buildItemHierarchy takes a flat list of raw items containing items and sub-items and returns a list of items containing their corresponding sub-items.
 // It will drop any sub-item without a matching main item.
-func buildItemHirarchy(items []rawItem) []Item {
+func buildItemHierarchy(items []rawItem) []Item {
 	mainItems := map[string]Item{}
 	for _, item := range items {
 		if !item.ParentQueryID.Valid {
@@ -211,7 +211,7 @@ func buildItemHirarchy(items []rawItem) []Item {
 					QuantityMax: item.QuantityAvg,
 					Unit:        item.Unit,
 				})
-				mainItems[item.ParentQueryID.String] = parent
+				mainItems[pqid] = parent
 			}
 		}
 	}
