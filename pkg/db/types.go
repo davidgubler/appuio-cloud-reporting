@@ -20,6 +20,14 @@ type Query struct {
 	During pgtype.Tstzrange
 }
 
+// CreateQuery creates the given query
+func CreateQuery(p NamedPreparer, in Query) (Query, error) {
+	var query Query
+	err := GetNamed(p, &query,
+		"INSERT INTO queries (name,description,query,unit,during,parent_id) VALUES (:name,:description,:query,:unit,:during,:parent_id) RETURNING *", in)
+	return query, err
+}
+
 type Tenant struct {
 	Id string
 
@@ -49,6 +57,14 @@ type Product struct {
 	During pgtype.Tstzrange
 }
 
+// CreateProduct creates the given product
+func CreateProduct(p NamedPreparer, in Product) (Product, error) {
+	var product Product
+	err := GetNamed(p, &product,
+		"INSERT INTO products (source,target,amount,unit,during) VALUES (:source,:target,:amount,:unit,:during) RETURNING *", in)
+	return product, err
+}
+
 type Discount struct {
 	Id string
 
@@ -58,6 +74,14 @@ type Discount struct {
 	Discount float64
 
 	During pgtype.Tstzrange
+}
+
+// CreateDiscount creates the given discount
+func CreateDiscount(p NamedPreparer, in Discount) (Discount, error) {
+	var discount Discount
+	err := GetNamed(p, &discount,
+		"INSERT INTO discounts (source,discount,during) VALUES (:source,:discount,:during) RETURNING *", in)
+	return discount, err
 }
 
 type DateTime struct {
