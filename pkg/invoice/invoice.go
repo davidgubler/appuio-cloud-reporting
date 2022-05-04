@@ -159,12 +159,15 @@ type rawItem struct {
 	QueryID string `db:"query_id"`
 	// ParentQueryID is the id of the parent-query of the query that generated this item
 	ParentQueryID sql.NullString `db:"parent_query_id"`
+	// DiscountID is the id of the corresponding discount
+	DiscountID string `db:"discount_id"`
 }
 
 func itemsForCategory(ctx context.Context, tx *sqlx.Tx, tenant db.Tenant, category db.Category, year int, month time.Month) ([]Item, error) {
 	var items []rawItem
 	err := sqlx.SelectContext(ctx, tx, &items,
-		`SELECT queries.description, queries.id as query_id, queries.parent_id as parent_query_id,
+		`SELECT  queries.id as query_id, queries.parent_id as parent_query_id, discounts.id as discount_id,
+				queries.description,
 				SUM(facts.quantity) as quantity, MIN(facts.quantity) as quantitymin, AVG(facts.quantity) as quantityavg, MAX(facts.quantity) as quantitymax,
 				queries.unit, products.amount AS pricePerUnit, discounts.discount,
 				products.id as product_ref_id, products.source as product_ref_source, COALESCE(products.target,''::text) as product_ref_target,
@@ -178,7 +181,7 @@ func itemsForCategory(ctx context.Context, tx *sqlx.Tx, tenant db.Tenant, catego
 			WHERE date_times.year = $1 AND date_times.month = $2
 				AND facts.tenant_id = $3
 				AND facts.category_id = $4
-			GROUP BY queries.id, products.amount, products.unit, products.id, products.source, products.target, discounts.discount
+			GROUP BY queries.id, products.id, discounts.id
 		`,
 		year, int(month), tenant.Id, category.Id)
 
@@ -195,12 +198,14 @@ func buildItemHierarchy(items []rawItem) []Item {
 	mainItems := map[string]Item{}
 	for _, item := range items {
 		if !item.ParentQueryID.Valid {
-			mainItems[item.QueryID] = item.Item
+			// These three IDs uniquely identify the line item
+			itemID := fmt.Sprintf("%s:%s:%s", item.QueryID, item.ProductRef.ID, item.DiscountID)
+			mainItems[itemID] = item.Item
 		}
 	}
 	for _, item := range items {
 		if item.ParentQueryID.Valid {
-			pqid := item.ParentQueryID.String
+			pqid := fmt.Sprintf("%s:%s:%s", item.ParentQueryID.String, item.ProductRef.ID, item.DiscountID)
 			parent, ok := mainItems[pqid]
 			if ok {
 				parent.SubItems = append(parent.SubItems, SubItem{

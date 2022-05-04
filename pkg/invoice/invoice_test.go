@@ -3,10 +3,12 @@ package invoice_test
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"sort"
 	"testing"
 	"time"
 
+	"github.com/jackc/pgtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -22,8 +24,9 @@ type InvoiceSuite struct {
 	memoryProduct  db.Product
 	storageProduct db.Product
 
-	memoryDiscount  db.Discount
-	storageDiscount db.Discount
+	memoryDiscount        db.Discount
+	tricellMemoryDiscount db.Discount
+	storageDiscount       db.Discount
 
 	memoryQuery         db.Query
 	memorySubQuery      db.Query
@@ -66,9 +69,16 @@ func (s *InvoiceSuite) SetupSuite() {
 	require.NoError(t,
 		db.GetNamed(tdb, &s.memoryDiscount,
 			"INSERT INTO discounts (source,discount,during) VALUES (:source,:discount,:during) RETURNING *", db.Discount{
-				Source:   "test_memory:us-rac-2",
+				Source:   "test_memory",
 				Discount: 0,
 				During:   db.InfiniteRange(),
+			}))
+	require.NoError(t,
+		db.GetNamed(tdb, &s.tricellMemoryDiscount,
+			"INSERT INTO discounts (source,discount,during) VALUES (:source,:discount,:during) RETURNING *", db.Discount{
+				Source:   "test_memory:*:",
+				Discount: .5,
+				During:   db.Timerange(db.MustTimestamp(time.Date(2021, time.December, 15, 14, 0, 0, 0, time.UTC)), db.MustTimestamp(pgtype.Infinity)),
 			}))
 	require.NoError(t,
 		db.GetNamed(tdb, &s.storageDiscount,
@@ -222,7 +232,37 @@ func (s *InvoiceSuite) SetupSuite() {
 		CategoryId: s.uroborosCategory.Id,
 
 		Quantity: 2000,
-	}, s.dateTimes)...)
+	}, s.dateTimes[:1])...)
+	facts = append(facts, factWithDateTime(db.Fact{
+		QueryId:    s.memorySubQuery.Id,
+		ProductId:  s.memoryProduct.Id,
+		DiscountId: s.memoryDiscount.Id,
+
+		TenantId:   s.tricellTenant.Id,
+		CategoryId: s.uroborosCategory.Id,
+
+		Quantity: 1337,
+	}, s.dateTimes[:1])...)
+	facts = append(facts, factWithDateTime(db.Fact{
+		QueryId:    s.memoryQuery.Id,
+		ProductId:  s.memoryProduct.Id,
+		DiscountId: s.tricellMemoryDiscount.Id,
+
+		TenantId:   s.tricellTenant.Id,
+		CategoryId: s.uroborosCategory.Id,
+
+		Quantity: 2000,
+	}, s.dateTimes[1:])...)
+	facts = append(facts, factWithDateTime(db.Fact{
+		QueryId:    s.memorySubQuery.Id,
+		ProductId:  s.memoryProduct.Id,
+		DiscountId: s.tricellMemoryDiscount.Id,
+
+		TenantId:   s.tricellTenant.Id,
+		CategoryId: s.uroborosCategory.Id,
+
+		Quantity: 1337,
+	}, s.dateTimes[1:])...)
 
 	require.NoError(t,
 		db.SelectNamed(tdb, &s.facts,
@@ -250,7 +290,7 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 	t.Run("InvoiceForTricell", func(t *testing.T) {
 		inv := invRun[0]
 		const quantity = float64(2000)
-		total := quantity * stampsInTimerange * s.memoryProduct.Amount * discountToMultiplier(s.memoryDiscount.Discount)
+		const subMemQuantity = float64(1337)
 
 		invoiceEqual(t, invoice.Invoice{
 			Tenant: invoice.Tenant{
@@ -273,20 +313,56 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 								Source: s.memoryProduct.Source,
 								Target: s.memoryProduct.Target.String,
 							},
-							Quantity:     quantity * stampsInTimerange,
+							Quantity:     quantity,
 							QuantityMin:  quantity,
 							QuantityAvg:  quantity,
 							QuantityMax:  quantity,
 							Unit:         s.memoryQuery.Unit,
 							PricePerUnit: s.memoryProduct.Amount,
 							Discount:     s.memoryDiscount.Discount,
-							Total:        total,
+							Total:        quantity * s.memoryProduct.Amount,
+							SubItems: []invoice.SubItem{
+								{
+									Description: s.memorySubQuery.Description,
+									Quantity:    subMemQuantity,
+									QuantityMin: subMemQuantity,
+									QuantityAvg: subMemQuantity,
+									QuantityMax: subMemQuantity,
+									Unit:        s.memorySubQuery.Unit,
+								},
+							},
+						},
+						{
+							Description: s.memoryQuery.Description,
+							ProductRef: invoice.ProductRef{
+								ID:     s.memoryProduct.Id,
+								Source: s.memoryProduct.Source,
+								Target: s.memoryProduct.Target.String,
+							},
+							Quantity:     quantity,
+							QuantityMin:  quantity,
+							QuantityAvg:  quantity,
+							QuantityMax:  quantity,
+							Unit:         s.memoryQuery.Unit,
+							PricePerUnit: s.memoryProduct.Amount,
+							Discount:     s.tricellMemoryDiscount.Discount,
+							Total:        quantity * s.memoryProduct.Amount * 0.5,
+							SubItems: []invoice.SubItem{
+								{
+									Description: s.memorySubQuery.Description,
+									Quantity:    subMemQuantity,
+									QuantityMin: subMemQuantity,
+									QuantityAvg: subMemQuantity,
+									QuantityMax: subMemQuantity,
+									Unit:        s.memorySubQuery.Unit,
+								},
+							},
 						},
 					},
-					Total: total,
+					Total: quantity * s.memoryProduct.Amount * 1.5,
 				},
 			},
-			Total: total,
+			Total: quantity * s.memoryProduct.Amount * 1.5,
 		}, inv)
 	})
 
@@ -423,7 +499,10 @@ func sortInvoice(inv *invoice.Invoice) {
 	})
 	for catIter := range inv.Categories {
 		sort.Slice(inv.Categories[catIter].Items, func(i, j int) bool {
-			return inv.Categories[catIter].Items[i].Description < inv.Categories[catIter].Items[j].Description
+			// This is horrible, but I don't really have any ID or similar to sort on..
+			iraw, _ := json.Marshal(inv.Categories[catIter].Items[i])
+			jraw, _ := json.Marshal(inv.Categories[catIter].Items[j])
+			return string(iraw) < string(jraw)
 		})
 		for itemIter := range inv.Categories[catIter].Items {
 			sort.Slice(inv.Categories[catIter].Items[itemIter].SubItems, func(i, j int) bool {
