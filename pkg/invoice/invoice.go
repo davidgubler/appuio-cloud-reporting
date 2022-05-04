@@ -166,7 +166,7 @@ func itemsForCategory(ctx context.Context, tx *sqlx.Tx, tenant db.Tenant, catego
 	err := sqlx.SelectContext(ctx, tx, &items,
 		`SELECT queries.description, queries.id as query_id, queries.parent_id as parent_query_id,
 				SUM(facts.quantity) as quantity, MIN(facts.quantity) as quantitymin, AVG(facts.quantity) as quantityavg, MAX(facts.quantity) as quantitymax,
-				products.unit, products.amount AS pricePerUnit, discounts.discount,
+				queries.unit, products.amount AS pricePerUnit, discounts.discount,
 				products.id as product_ref_id, products.source as product_ref_source, COALESCE(products.target,''::text) as product_ref_target,
 				SUM( facts.quantity * products.amount * ( 1::double precision - discounts.discount ) ) AS total
 			FROM facts
