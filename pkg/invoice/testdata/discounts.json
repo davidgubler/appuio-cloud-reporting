@@ -31,14 +31,6 @@
 								"QuantityAvg": 4,
 								"QuantityMax": 4,
 								"Unit": "tps"
-							},
-							{
-								"Description": "An other sub query of Test",
-								"Quantity": 1512,
-								"QuantityMin": 7,
-								"QuantityAvg": 7,
-								"QuantityMax": 7,
-								"Unit": "tps"
 							}
 						]
 					}
@@ -69,14 +61,6 @@
 								"QuantityAvg": 4,
 								"QuantityMax": 4,
 								"Unit": "tps"
-							},
-							{
-								"Description": "An other sub query of Test",
-								"Quantity": 1512,
-								"QuantityMin": 7,
-								"QuantityAvg": 7,
-								"QuantityMax": 7,
-								"Unit": "tps"
 							}
 						]
 					}
@@ -106,14 +90,6 @@
 								"QuantityMin": 4,
 								"QuantityAvg": 4,
 								"QuantityMax": 4,
-								"Unit": "tps"
-							},
-							{
-								"Description": "An other sub query of Test",
-								"Quantity": 1512,
-								"QuantityMin": 7,
-								"QuantityAvg": 7,
-								"QuantityMax": 7,
 								"Unit": "tps"
 							}
 						]
@@ -155,14 +131,6 @@
 								"QuantityMin": 2,
 								"QuantityAvg": 2,
 								"QuantityMax": 2,
-								"Unit": "tps"
-							},
-							{
-								"Description": "An other sub query of Test",
-								"Quantity": 0,
-								"QuantityMin": 0,
-								"QuantityAvg": 0,
-								"QuantityMax": 0,
 								"Unit": "tps"
 							}
 						]
