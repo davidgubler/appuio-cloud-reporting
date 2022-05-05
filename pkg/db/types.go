@@ -9,7 +9,8 @@ import (
 )
 
 type Query struct {
-	Id string
+	Id       string
+	ParentID sql.NullString `db:"parent_id"`
 
 	Name        string
 	Description string

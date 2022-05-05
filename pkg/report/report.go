@@ -54,6 +54,26 @@ func Run(ctx context.Context, tx *sqlx.Tx, prom PromQuerier, queryName string, f
 		return fmt.Errorf("failed to load query '%s' at '%s': %w", queryName, from.Format(time.RFC3339), err)
 	}
 
+	if err := runQuery(ctx, tx, prom, query, from, opts); err != nil {
+		return fmt.Errorf("failed to run query '%s' at '%s': %w", queryName, from.Format(time.RFC3339), err)
+	}
+
+	var subQueries []db.Query
+	if err := sqlx.SelectContext(ctx, tx, &subQueries,
+		"SELECT id, name, description, query, unit, during FROM queries WHERE parent_id  = $1 AND (during @> $2::timestamptz)", query.Id, from,
+	); err != nil {
+		return fmt.Errorf("failed to load subQueries for '%s' at '%s': %w", queryName, from.Format(time.RFC3339), err)
+	}
+	for _, subQuery := range subQueries {
+		if err := runQuery(ctx, tx, prom, subQuery, from, opts); err != nil {
+			return fmt.Errorf("failed to run subQuery '%s' at '%s': %w", subQuery.Name, from.Format(time.RFC3339), err)
+		}
+	}
+
+	return nil
+}
+
+func runQuery(ctx context.Context, tx *sqlx.Tx, prom PromQuerier, query db.Query, from time.Time, opts options) error {
 	promQCtx := ctx
 	if opts.prometheusQueryTimeout != 0 {
 		ctx, cancel := context.WithTimeout(promQCtx, opts.prometheusQueryTimeout)

@@ -3,9 +3,13 @@ package invoice_test
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
+	"sort"
 	"testing"
 	"time"
 
+	"github.com/jackc/pgtype"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -20,11 +24,14 @@ type InvoiceSuite struct {
 	memoryProduct  db.Product
 	storageProduct db.Product
 
-	memoryDiscount  db.Discount
-	storageDiscount db.Discount
+	memoryDiscount        db.Discount
+	tricellMemoryDiscount db.Discount
+	storageDiscount       db.Discount
 
-	memoryQuery  db.Query
-	storageQuery db.Query
+	memoryQuery         db.Query
+	memorySubQuery      db.Query
+	memoryOtherSubQuery db.Query
+	storageQuery        db.Query
 
 	umbrellaCorpTenant db.Tenant
 	tricellTenant      db.Tenant
@@ -62,9 +69,16 @@ func (s *InvoiceSuite) SetupSuite() {
 	require.NoError(t,
 		db.GetNamed(tdb, &s.memoryDiscount,
 			"INSERT INTO discounts (source,discount,during) VALUES (:source,:discount,:during) RETURNING *", db.Discount{
-				Source:   "test_memory:us-rac-2",
+				Source:   "test_memory",
 				Discount: 0,
 				During:   db.InfiniteRange(),
+			}))
+	require.NoError(t,
+		db.GetNamed(tdb, &s.tricellMemoryDiscount,
+			"INSERT INTO discounts (source,discount,during) VALUES (:source,:discount,:during) RETURNING *", db.Discount{
+				Source:   "test_memory:*:",
+				Discount: .5,
+				During:   db.Timerange(db.MustTimestamp(time.Date(2021, time.December, 15, 14, 0, 0, 0, time.UTC)), db.MustTimestamp(pgtype.Infinity)),
 			}))
 	require.NoError(t,
 		db.GetNamed(tdb, &s.storageDiscount,
@@ -81,6 +95,29 @@ func (s *InvoiceSuite) SetupSuite() {
 				Description: "Memory",
 				Unit:        "MiB",
 			}))
+	require.NoError(t,
+		db.GetNamed(tdb, &s.memorySubQuery,
+			"INSERT INTO queries (parent_id,name,description,unit,query) VALUES (:parent_id,:name,:description,:unit,:query) RETURNING *", db.Query{
+				ParentID: sql.NullString{
+					String: s.memoryQuery.Id,
+					Valid:  true,
+				},
+				Name:        "test_sub_memory",
+				Description: "Sub Memory",
+				Unit:        "MiB",
+			}))
+	require.NoError(t,
+		db.GetNamed(tdb, &s.memoryOtherSubQuery,
+			"INSERT INTO queries (parent_id,name,description,unit,query) VALUES (:parent_id,:name,:description,:unit,:query) RETURNING *", db.Query{
+				ParentID: sql.NullString{
+					String: s.memoryQuery.Id,
+					Valid:  true,
+				},
+				Name:        "test_other_sub_memory",
+				Description: "Other Sub Memory",
+				Unit:        "core",
+			}))
+
 	require.NoError(t,
 		db.GetNamed(tdb, &s.storageQuery,
 			"INSERT INTO queries (name,description,unit,query) VALUES (:name,:description,:unit,:query) RETURNING *", db.Query{
@@ -143,6 +180,26 @@ func (s *InvoiceSuite) SetupSuite() {
 
 		Quantity: 4000,
 	}, s.dateTimes)...)
+	facts = append(facts, factWithDateTime(db.Fact{
+		QueryId:    s.memorySubQuery.Id,
+		ProductId:  s.memoryProduct.Id,
+		DiscountId: s.memoryDiscount.Id,
+
+		TenantId:   s.umbrellaCorpTenant.Id,
+		CategoryId: s.p12aCategory.Id,
+
+		Quantity: 1337,
+	}, s.dateTimes)...)
+	facts = append(facts, factWithDateTime(db.Fact{
+		QueryId:    s.memoryOtherSubQuery.Id,
+		ProductId:  s.memoryProduct.Id,
+		DiscountId: s.memoryDiscount.Id,
+
+		TenantId:   s.umbrellaCorpTenant.Id,
+		CategoryId: s.p12aCategory.Id,
+
+		Quantity: 42,
+	}, s.dateTimes)...)
 
 	facts = append(facts, factWithDateTime(db.Fact{
 		QueryId:    s.storageQuery.Id,
@@ -175,7 +232,37 @@ func (s *InvoiceSuite) SetupSuite() {
 		CategoryId: s.uroborosCategory.Id,
 
 		Quantity: 2000,
-	}, s.dateTimes)...)
+	}, s.dateTimes[:1])...)
+	facts = append(facts, factWithDateTime(db.Fact{
+		QueryId:    s.memorySubQuery.Id,
+		ProductId:  s.memoryProduct.Id,
+		DiscountId: s.memoryDiscount.Id,
+
+		TenantId:   s.tricellTenant.Id,
+		CategoryId: s.uroborosCategory.Id,
+
+		Quantity: 1337,
+	}, s.dateTimes[:1])...)
+	facts = append(facts, factWithDateTime(db.Fact{
+		QueryId:    s.memoryQuery.Id,
+		ProductId:  s.memoryProduct.Id,
+		DiscountId: s.tricellMemoryDiscount.Id,
+
+		TenantId:   s.tricellTenant.Id,
+		CategoryId: s.uroborosCategory.Id,
+
+		Quantity: 2000,
+	}, s.dateTimes[1:])...)
+	facts = append(facts, factWithDateTime(db.Fact{
+		QueryId:    s.memorySubQuery.Id,
+		ProductId:  s.memoryProduct.Id,
+		DiscountId: s.tricellMemoryDiscount.Id,
+
+		TenantId:   s.tricellTenant.Id,
+		CategoryId: s.uroborosCategory.Id,
+
+		Quantity: 1337,
+	}, s.dateTimes[1:])...)
 
 	require.NoError(t,
 		db.SelectNamed(tdb, &s.facts,
@@ -203,9 +290,9 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 	t.Run("InvoiceForTricell", func(t *testing.T) {
 		inv := invRun[0]
 		const quantity = float64(2000)
-		total := quantity * stampsInTimerange * s.memoryProduct.Amount * discountToMultiplier(s.memoryDiscount.Discount)
+		const subMemQuantity = float64(1337)
 
-		require.Equal(t, invoice.Invoice{
+		invoiceEqual(t, invoice.Invoice{
 			Tenant: invoice.Tenant{
 				ID:     s.tricellTenant.Id,
 				Source: s.tricellTenant.Source,
@@ -226,20 +313,56 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 								Source: s.memoryProduct.Source,
 								Target: s.memoryProduct.Target.String,
 							},
-							Quantity:     quantity * stampsInTimerange,
+							Quantity:     quantity,
 							QuantityMin:  quantity,
 							QuantityAvg:  quantity,
 							QuantityMax:  quantity,
-							Unit:         s.memoryProduct.Unit,
+							Unit:         s.memoryQuery.Unit,
 							PricePerUnit: s.memoryProduct.Amount,
 							Discount:     s.memoryDiscount.Discount,
-							Total:        total,
+							Total:        quantity * s.memoryProduct.Amount,
+							SubItems: []invoice.SubItem{
+								{
+									Description: s.memorySubQuery.Description,
+									Quantity:    subMemQuantity,
+									QuantityMin: subMemQuantity,
+									QuantityAvg: subMemQuantity,
+									QuantityMax: subMemQuantity,
+									Unit:        s.memorySubQuery.Unit,
+								},
+							},
+						},
+						{
+							Description: s.memoryQuery.Description,
+							ProductRef: invoice.ProductRef{
+								ID:     s.memoryProduct.Id,
+								Source: s.memoryProduct.Source,
+								Target: s.memoryProduct.Target.String,
+							},
+							Quantity:     quantity,
+							QuantityMin:  quantity,
+							QuantityAvg:  quantity,
+							QuantityMax:  quantity,
+							Unit:         s.memoryQuery.Unit,
+							PricePerUnit: s.memoryProduct.Amount,
+							Discount:     s.tricellMemoryDiscount.Discount,
+							Total:        quantity * s.memoryProduct.Amount * 0.5,
+							SubItems: []invoice.SubItem{
+								{
+									Description: s.memorySubQuery.Description,
+									Quantity:    subMemQuantity,
+									QuantityMin: subMemQuantity,
+									QuantityAvg: subMemQuantity,
+									QuantityMax: subMemQuantity,
+									Unit:        s.memorySubQuery.Unit,
+								},
+							},
 						},
 					},
-					Total: total,
+					Total: quantity * s.memoryProduct.Amount * 1.5,
 				},
 			},
-			Total: total,
+			Total: quantity * s.memoryProduct.Amount * 1.5,
 		}, inv)
 	})
 
@@ -247,12 +370,14 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 		inv := invRun[1]
 		const memP12Quantity = float64(4000)
 		memP12Total := memP12Quantity * stampsInTimerange * s.memoryProduct.Amount * discountToMultiplier(s.memoryDiscount.Discount)
+		const subMemP12Quantity = float64(1337)
+		const otherSubMemP12Quantity = float64(42)
 		const storP12Quantity = float64(12)
 		storP12Total := storP12Quantity * stampsInTimerange * s.storageProduct.Amount * discountToMultiplier(s.storageDiscount.Discount)
 		const memNestQuantity = float64(1000)
 		memNestTotal := memNestQuantity * stampsInTimerange * s.memoryProduct.Amount * discountToMultiplier(s.memoryDiscount.Discount)
 
-		require.Equal(t, invoice.Invoice{
+		invoiceEqual(t, invoice.Invoice{
 			Tenant: invoice.Tenant{
 				ID:     s.umbrellaCorpTenant.Id,
 				Source: s.umbrellaCorpTenant.Source,
@@ -267,22 +392,6 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 					Target: s.p12aCategory.Target.String,
 					Items: []invoice.Item{
 						{
-							Description: s.memoryQuery.Description,
-							ProductRef: invoice.ProductRef{
-								ID:     s.memoryProduct.Id,
-								Source: s.memoryProduct.Source,
-								Target: s.memoryProduct.Target.String,
-							},
-							Quantity:     memP12Quantity * stampsInTimerange,
-							QuantityMin:  memP12Quantity,
-							QuantityAvg:  memP12Quantity,
-							QuantityMax:  memP12Quantity,
-							Unit:         s.memoryProduct.Unit,
-							PricePerUnit: s.memoryProduct.Amount,
-							Discount:     s.memoryDiscount.Discount,
-							Total:        memP12Total,
-						},
-						{
 							Description: s.storageQuery.Description,
 							ProductRef: invoice.ProductRef{
 								ID:     s.storageProduct.Id,
@@ -293,10 +402,44 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 							QuantityMin:  storP12Quantity,
 							QuantityAvg:  storP12Quantity,
 							QuantityMax:  storP12Quantity,
-							Unit:         s.storageProduct.Unit,
+							Unit:         s.storageQuery.Unit,
 							PricePerUnit: s.storageProduct.Amount,
 							Discount:     s.storageDiscount.Discount,
 							Total:        storP12Total,
+						},
+						{
+							Description: s.memoryQuery.Description,
+							ProductRef: invoice.ProductRef{
+								ID:     s.memoryProduct.Id,
+								Source: s.memoryProduct.Source,
+								Target: s.memoryProduct.Target.String,
+							},
+							Quantity:     memP12Quantity * stampsInTimerange,
+							QuantityMin:  memP12Quantity,
+							QuantityAvg:  memP12Quantity,
+							QuantityMax:  memP12Quantity,
+							Unit:         s.memoryQuery.Unit,
+							PricePerUnit: s.memoryProduct.Amount,
+							Discount:     s.memoryDiscount.Discount,
+							Total:        memP12Total,
+							SubItems: []invoice.SubItem{
+								{
+									Description: s.memorySubQuery.Description,
+									Quantity:    subMemP12Quantity * stampsInTimerange,
+									QuantityMin: subMemP12Quantity,
+									QuantityAvg: subMemP12Quantity,
+									QuantityMax: subMemP12Quantity,
+									Unit:        s.memorySubQuery.Unit,
+								},
+								{
+									Description: s.memoryOtherSubQuery.Description,
+									Quantity:    otherSubMemP12Quantity * stampsInTimerange,
+									QuantityMin: otherSubMemP12Quantity,
+									QuantityAvg: otherSubMemP12Quantity,
+									QuantityMax: otherSubMemP12Quantity,
+									Unit:        s.memoryOtherSubQuery.Unit,
+								},
+							},
 						},
 					},
 					Total: memP12Total + storP12Total,
@@ -317,7 +460,7 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 							QuantityMin:  memNestQuantity,
 							QuantityAvg:  memNestQuantity,
 							QuantityMax:  memNestQuantity,
-							Unit:         s.memoryProduct.Unit,
+							Unit:         s.memoryQuery.Unit,
 							PricePerUnit: s.memoryProduct.Amount,
 							Discount:     s.memoryDiscount.Discount,
 							Total:        memNestTotal,
@@ -342,4 +485,29 @@ func factWithDateTime(f db.Fact, dts []db.DateTime) []db.Fact {
 		facts = append(facts, f)
 	}
 	return facts
+}
+
+func invoiceEqual(t *testing.T, expInv, inv invoice.Invoice) bool {
+	sortInvoice(&inv)
+	sortInvoice(&expInv)
+	return assert.Equal(t, expInv, inv)
+}
+
+func sortInvoice(inv *invoice.Invoice) {
+	sort.Slice(inv.Categories, func(i, j int) bool {
+		return inv.Categories[i].ID < inv.Categories[j].ID
+	})
+	for catIter := range inv.Categories {
+		sort.Slice(inv.Categories[catIter].Items, func(i, j int) bool {
+			// This is horrible, but I don't really have any ID or similar to sort on..
+			iraw, _ := json.Marshal(inv.Categories[catIter].Items[i])
+			jraw, _ := json.Marshal(inv.Categories[catIter].Items[j])
+			return string(iraw) < string(jraw)
+		})
+		for itemIter := range inv.Categories[catIter].Items {
+			sort.Slice(inv.Categories[catIter].Items[itemIter].SubItems, func(i, j int) bool {
+				return inv.Categories[catIter].Items[itemIter].SubItems[i].Description < inv.Categories[catIter].Items[itemIter].SubItems[j].Description
+			})
+		}
+	}
 }
