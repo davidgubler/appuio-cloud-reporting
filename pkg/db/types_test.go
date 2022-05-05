@@ -6,8 +6,11 @@ import (
 
 	"github.com/jackc/pgtype"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 
 	"github.com/appuio/appuio-cloud-reporting/pkg/db"
+	"github.com/appuio/appuio-cloud-reporting/pkg/db/dbtest"
 )
 
 func TestTimerange(t *testing.T) {
@@ -31,4 +34,54 @@ func TestBuildDateTime(t *testing.T) {
 	assert.Equal(t, subject.Month, 3)
 	assert.Equal(t, subject.Day, 23)
 	assert.Equal(t, subject.Hour, 17)
+}
+
+func TestTypes(t *testing.T) {
+	suite.Run(t, new(TypesTestSuite))
+}
+
+type TypesTestSuite struct {
+	dbtest.Suite
+}
+
+func (s *TypesTestSuite) TestTypes_Query() {
+	t := s.T()
+	d := s.DB()
+
+	_, err := db.CreateQuery(d, db.Query{
+		Name:   "test",
+		Query:  "test",
+		Unit:   "tps",
+		During: db.InfiniteRange(),
+	})
+	require.NoError(t, err)
+
+	count := "SELECT ((SELECT COUNT(*) FROM queries WHERE name=$1) = 1)"
+	requireQueryTrue(t, d, count, "test")
+}
+func (s *TypesTestSuite) TestTypes_Product() {
+	t := s.T()
+	d := s.DB()
+
+	_, err := db.CreateProduct(d, db.Product{
+		Source: "test",
+		During: db.InfiniteRange(),
+	})
+	require.NoError(t, err)
+
+	count := "SELECT ((SELECT COUNT(*) FROM products WHERE source=$1) = 1)"
+	requireQueryTrue(t, d, count, "test")
+}
+func (s *TypesTestSuite) TestTypes_Discount() {
+	t := s.T()
+	d := s.DB()
+
+	_, err := db.CreateDiscount(d, db.Discount{
+		Source: "test",
+		During: db.InfiniteRange(),
+	})
+	require.NoError(t, err)
+
+	count := "SELECT ((SELECT COUNT(*) FROM discounts WHERE source=$1) = 1)"
+	requireQueryTrue(t, d, count, "test")
 }

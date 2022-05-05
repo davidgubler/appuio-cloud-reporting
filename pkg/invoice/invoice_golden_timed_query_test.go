@@ -9,13 +9,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-
-
 func (s *InvoiceGoldenSuite) TestInvoiceGolden_TimedQuery() {
 	t := s.T()
 	tdb := s.DB()
 
-  // Create base product and discount
+	// Create base product and discount
 	_, err := db.CreateProduct(tdb, db.Product{
 		Source: "my-product",
 		Amount: 1,
@@ -28,8 +26,8 @@ func (s *InvoiceGoldenSuite) TestInvoiceGolden_TimedQuery() {
 	})
 	require.NoError(t, err)
 
-  // Create old query, only valid before the billing period.
-  // Should not be in invoice
+	// Create old query, only valid before the billing period.
+	// Should not be in invoice
 	old, err := db.CreateQuery(tdb, db.Query{
 		Name:        "test",
 		Description: "old invalid query",
@@ -43,9 +41,8 @@ func (s *InvoiceGoldenSuite) TestInvoiceGolden_TimedQuery() {
 	}
 	require.NoError(t, err)
 
-
-  // Create query and two subqueries that are valid for the first 5 days
-  // One subquery is only valid for the first two days of the billing month
+	// Create query and two subqueries that are valid for the first 5 days
+	// One subquery is only valid for the first two days of the billing month
 	q, err := db.CreateQuery(tdb, db.Query{
 		Name:        "test",
 		Description: "test description",
@@ -91,7 +88,7 @@ func (s *InvoiceGoldenSuite) TestInvoiceGolden_TimedQuery() {
 	}
 	require.NoError(t, err)
 
-  // Create new query that is valid from the 5th day and has one subquery
+	// Create new query that is valid from the 5th day and has one subquery
 	newQ, err := db.CreateQuery(tdb, db.Query{
 		Name:        "test",
 		Description: "new nicer query",
@@ -126,4 +123,3 @@ func (s *InvoiceGoldenSuite) TestInvoiceGolden_TimedQuery() {
 		generateInvoice(t, tdb, 2022, time.March),
 		*updateGolden)
 }
-
