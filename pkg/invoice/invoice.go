@@ -25,7 +25,6 @@ type Invoice struct {
 
 // Category represents a category of the invoice i.e. a namespace.
 type Category struct {
-	ID     string
 	Source string
 	Target string
 	Items  []Item
@@ -79,7 +78,6 @@ type SubItem struct {
 
 // Tenant represents a tenant in the invoice.
 type Tenant struct {
-	ID     string
 	Source string
 	Target string
 }
@@ -133,7 +131,6 @@ func invoiceForTenant(ctx context.Context, tx *sqlx.Tx, tenant db.Tenant, year i
 			return Invoice{}, err
 		}
 		invCategories = append(invCategories, Category{
-			ID:     category.Id,
 			Source: category.Source,
 			Target: category.Target.String,
 			Items:  items,
@@ -142,7 +139,7 @@ func invoiceForTenant(ctx context.Context, tx *sqlx.Tx, tenant db.Tenant, year i
 	}
 
 	return Invoice{
-		Tenant:      Tenant{ID: tenant.Id, Source: tenant.Source, Target: tenant.Target.String},
+		Tenant:      Tenant{Source: tenant.Source, Target: tenant.Target.String},
 		PeriodStart: time.Date(year, month, 1, 0, 0, 0, 0, time.UTC),
 		PeriodEnd:   time.Date(year, month, 1, 0, 0, 0, 0, time.UTC).AddDate(0, 1, -1),
 		Categories:  invCategories,
