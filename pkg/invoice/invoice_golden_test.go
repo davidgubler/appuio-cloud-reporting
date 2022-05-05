@@ -10,10 +10,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/appuio/appuio-cloud-reporting/pkg/db"
 	"github.com/appuio/appuio-cloud-reporting/pkg/db/dbtest"
 	"github.com/appuio/appuio-cloud-reporting/pkg/invoice"
 	"github.com/appuio/appuio-cloud-reporting/pkg/report"
+	"github.com/appuio/appuio-cloud-reporting/pkg/sourcekey"
+	"github.com/jackc/pgtype"
 	"github.com/jmoiron/sqlx"
+	apiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	"github.com/prometheus/common/model"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -40,6 +45,33 @@ func TestInvoiceIntegration(t *testing.T) {
 }
 
 const dayLayout = "2006-01-02"
+
+type fakeQuerySample struct {
+	Value model.SampleValue
+}
+type fakeQueryResults map[string]fakeQuerySample
+type fakeQuerrier struct {
+	queries map[string]fakeQueryResults
+}
+
+func (q fakeQuerrier) Query(ctx context.Context, query string, ts time.Time) (model.Value, apiv1.Warnings, error) {
+	var res model.Vector
+	for k, s := range q.queries[query] {
+		sk, err := sourcekey.Parse(k)
+		if err != nil {
+			return nil, nil, err
+		}
+		res = append(res, &model.Sample{
+			Metric: map[model.LabelName]model.LabelValue{
+				"product":  model.LabelValue(k),
+				"category": model.LabelValue(fmt.Sprintf("%s:%s", sk.Zone, sk.Namespace)),
+				"tenant":   model.LabelValue(sk.Tenant),
+			},
+			Value: s.Value,
+		})
+	}
+	return res, nil, nil
+}
 
 func runReport(t *testing.T, tdb *sqlx.DB, prom report.PromQuerier, queryName string, from, until string) {
 	start, err := time.Parse(dayLayout, from)
@@ -78,4 +110,24 @@ func invoiceEqualsGolden(t *testing.T, goldenFile string, actual []invoice.Invoi
 
 		assert.JSONEq(t, string(expected), string(actualJSON))
 	})
+}
+
+func timerange(t *testing.T, from, to string) pgtype.Tstzrange {
+	var fromTs pgtype.Timestamptz
+	if from == "-" {
+		fromTs = db.MustTimestamp(pgtype.NegativeInfinity)
+	} else {
+		ts, err := time.Parse(dayLayout, from)
+		require.NoError(t, err, "failed to parse timestamp")
+		fromTs = db.MustTimestamp(ts)
+	}
+	var toTs pgtype.Timestamptz
+	if to == "-" {
+		toTs = db.MustTimestamp(pgtype.Infinity)
+	} else {
+		ts, err := time.Parse(dayLayout, to)
+		require.NoError(t, err, "failed to parse timestamp")
+		toTs = db.MustTimestamp(ts)
+	}
+	return db.Timerange(fromTs, toTs)
 }

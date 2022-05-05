@@ -1,19 +1,13 @@
 package invoice_test
 
 import (
-	"context"
 	"encoding/json"
 	"flag"
-	"fmt"
 	"os"
 	"sort"
 	"testing"
-	"time"
 
 	"github.com/appuio/appuio-cloud-reporting/pkg/invoice"
-	"github.com/appuio/appuio-cloud-reporting/pkg/sourcekey"
-	apiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
-	"github.com/prometheus/common/model"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,33 +18,6 @@ var (
 func TestMain(m *testing.M) {
 	flag.Parse()
 	os.Exit(m.Run())
-}
-
-type fakeQuerySample struct {
-	Value model.SampleValue
-}
-type fakeQueryResults map[string]fakeQuerySample
-type fakeQuerrier struct {
-	queries map[string]fakeQueryResults
-}
-
-func (q fakeQuerrier) Query(ctx context.Context, query string, ts time.Time) (model.Value, apiv1.Warnings, error) {
-	var res model.Vector
-	for k, s := range q.queries[query] {
-		sk, err := sourcekey.Parse(k)
-		if err != nil {
-			return nil, nil, err
-		}
-		res = append(res, &model.Sample{
-			Metric: map[model.LabelName]model.LabelValue{
-				"product":  model.LabelValue(k),
-				"category": model.LabelValue(fmt.Sprintf("%s:%s", sk.Zone, sk.Namespace)),
-				"tenant":   model.LabelValue(sk.Tenant),
-			},
-			Value: s.Value,
-		})
-	}
-	return res, nil, nil
 }
 
 func invoiceEqual(t *testing.T, expInv, inv invoice.Invoice) bool {

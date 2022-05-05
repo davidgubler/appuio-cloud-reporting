@@ -2,34 +2,14 @@ package invoice_test
 
 import (
 	"database/sql"
-	"testing"
 	"time"
 
 	"github.com/appuio/appuio-cloud-reporting/pkg/db"
-	"github.com/jackc/pgtype"
 
 	"github.com/stretchr/testify/require"
 )
 
-func timerange(t *testing.T, from, to string) pgtype.Tstzrange {
-	var fromTs pgtype.Timestamptz
-	if from == "-" {
-		fromTs = db.MustTimestamp(pgtype.NegativeInfinity)
-	} else {
-		ts, err := time.Parse(dayLayout, from)
-		require.NoError(t, err, "failed to parse timestamp")
-		fromTs = db.MustTimestamp(ts)
-	}
-	var toTs pgtype.Timestamptz
-	if to == "-" {
-		toTs = db.MustTimestamp(pgtype.Infinity)
-	} else {
-		ts, err := time.Parse(dayLayout, to)
-		require.NoError(t, err, "failed to parse timestamp")
-		toTs = db.MustTimestamp(ts)
-	}
-	return db.Timerange(fromTs, toTs)
-}
+
 
 func (s *InvoiceGoldenSuite) TestInvoiceGolden_TimedQuery() {
 	t := s.T()
