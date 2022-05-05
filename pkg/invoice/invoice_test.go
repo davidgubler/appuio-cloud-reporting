@@ -309,7 +309,6 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 						{
 							Description: s.memoryQuery.Description,
 							ProductRef: invoice.ProductRef{
-								ID:     s.memoryProduct.Id,
 								Source: s.memoryProduct.Source,
 								Target: s.memoryProduct.Target.String,
 							},
@@ -335,7 +334,6 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 						{
 							Description: s.memoryQuery.Description,
 							ProductRef: invoice.ProductRef{
-								ID:     s.memoryProduct.Id,
 								Source: s.memoryProduct.Source,
 								Target: s.memoryProduct.Target.String,
 							},
@@ -394,7 +392,6 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 						{
 							Description: s.storageQuery.Description,
 							ProductRef: invoice.ProductRef{
-								ID:     s.storageProduct.Id,
 								Source: s.storageProduct.Source,
 								Target: s.storageProduct.Target.String,
 							},
@@ -410,7 +407,6 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 						{
 							Description: s.memoryQuery.Description,
 							ProductRef: invoice.ProductRef{
-								ID:     s.memoryProduct.Id,
 								Source: s.memoryProduct.Source,
 								Target: s.memoryProduct.Target.String,
 							},
@@ -452,7 +448,6 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 						{
 							Description: s.memoryQuery.Description,
 							ProductRef: invoice.ProductRef{
-								ID:     s.memoryProduct.Id,
 								Source: s.memoryProduct.Source,
 								Target: s.memoryProduct.Target.String,
 							},

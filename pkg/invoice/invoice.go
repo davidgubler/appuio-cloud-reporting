@@ -86,7 +86,6 @@ type Tenant struct {
 
 // ProductRef represents a product reference in the invoice.
 type ProductRef struct {
-	ID     string `db:"product_ref_id"`
 	Source string `db:"product_ref_source"`
 	Target string `db:"product_ref_target"`
 }
@@ -161,6 +160,8 @@ type rawItem struct {
 	ParentQueryID sql.NullString `db:"parent_query_id"`
 	// DiscountID is the id of the corresponding discount
 	DiscountID string `db:"discount_id"`
+	// ProductID is the id of the corresponding product entry
+	ProductID string `db:"product_ref_id"`
 }
 
 func itemsForCategory(ctx context.Context, tx *sqlx.Tx, tenant db.Tenant, category db.Category, year int, month time.Month) ([]Item, error) {
@@ -199,13 +200,13 @@ func buildItemHierarchy(items []rawItem) []Item {
 	for _, item := range items {
 		if !item.ParentQueryID.Valid {
 			// These three IDs uniquely identify the line item
-			itemID := fmt.Sprintf("%s:%s:%s", item.QueryID, item.ProductRef.ID, item.DiscountID)
+			itemID := fmt.Sprintf("%s:%s:%s", item.QueryID, item.ProductID, item.DiscountID)
 			mainItems[itemID] = item.Item
 		}
 	}
 	for _, item := range items {
 		if item.ParentQueryID.Valid {
-			pqid := fmt.Sprintf("%s:%s:%s", item.ParentQueryID.String, item.ProductRef.ID, item.DiscountID)
+			pqid := fmt.Sprintf("%s:%s:%s", item.ParentQueryID.String, item.ProductID, item.DiscountID)
 			parent, ok := mainItems[pqid]
 			if ok {
 				parent.SubItems = append(parent.SubItems, SubItem{
