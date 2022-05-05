@@ -2,7 +2,6 @@ package invoice_test
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/appuio/appuio-cloud-reporting/pkg/db"
 	"github.com/appuio/appuio-cloud-reporting/pkg/db/dbtest"
 	"github.com/appuio/appuio-cloud-reporting/pkg/invoice"
 	"github.com/appuio/appuio-cloud-reporting/pkg/report"
@@ -42,155 +40,6 @@ func TestInvoiceIntegration(t *testing.T) {
 }
 
 const dayLayout = "2006-01-02"
-
-func (s *InvoiceGoldenSuite) TestInvoiceGolden_Simple() {
-	t := s.T()
-	tdb := s.DB()
-
-	_, err := db.CreateProduct(tdb, db.Product{
-		Source: "my-product",
-		Amount: 1,
-		During: db.InfiniteRange(),
-	})
-	require.NoError(t, err)
-
-	_, err = db.CreateDiscount(tdb, db.Discount{
-		Source: "my-product",
-		During: db.InfiniteRange(),
-	})
-	require.NoError(t, err)
-
-	q, err := db.CreateQuery(tdb, db.Query{
-		Name:        "test",
-		Description: "test description",
-		Query:       "test",
-		Unit:        "tps",
-		During:      db.InfiniteRange(),
-	})
-	s.prom.queries[q.Query] = fakeQueryResults{
-		"my-product:my-cluster:my-tenant:my-namespace":    fakeQuerySample{Value: 42},
-		"my-product:my-cluster:other-tenant:my-namespace": fakeQuerySample{Value: 23},
-	}
-	require.NoError(t, err)
-
-	sq, err := db.CreateQuery(tdb, db.Query{
-		ParentID: sql.NullString{
-			String: q.Id,
-			Valid:  true,
-		},
-		Name:        "sub-test",
-		Description: "A sub query of Test",
-		Query:       "sub-test",
-		Unit:        "tps",
-		During:      db.InfiniteRange(),
-	})
-	s.prom.queries[sq.Query] = fakeQueryResults{
-		"my-product:my-cluster:my-tenant:my-namespace":    fakeQuerySample{Value: 4},
-		"my-product:my-cluster:other-tenant:my-namespace": fakeQuerySample{Value: 2},
-	}
-	require.NoError(t, err)
-
-	sq2, err := db.CreateQuery(tdb, db.Query{
-		ParentID: sql.NullString{
-			String: q.Id,
-			Valid:  true,
-		},
-		Name:        "sub-test2",
-		Description: "An other sub query of Test",
-		Query:       "sub-test2",
-		Unit:        "tps",
-		During:      db.InfiniteRange(),
-	})
-	s.prom.queries[sq2.Query] = fakeQueryResults{
-		"my-product:my-cluster:my-tenant:my-namespace":    fakeQuerySample{Value: 7},
-		"my-product:my-cluster:other-tenant:my-namespace": fakeQuerySample{Value: 0},
-	}
-	require.NoError(t, err)
-
-	runReport(t, tdb, s.prom, q.Name, "2022-02-25", "2022-03-10")
-	invoiceEqualsGolden(t, "simple",
-		generateInvoice(t, tdb, 2022, time.March),
-		*updateGolden)
-}
-
-func (s *InvoiceGoldenSuite) TestInvoiceGolden_Discounts() {
-	t := s.T()
-	tdb := s.DB()
-
-	_, err := db.CreateProduct(tdb, db.Product{
-		Source: "my-product",
-		Amount: 1,
-		During: db.InfiniteRange(),
-	})
-	require.NoError(t, err)
-
-	_, err = db.CreateDiscount(tdb, db.Discount{
-		Source: "my-product",
-		During: db.InfiniteRange(),
-	})
-	require.NoError(t, err)
-
-	_, err = db.CreateDiscount(tdb, db.Discount{
-		Source:   "my-product:*:my-tenant",
-		Discount: 0.25,
-		During:   db.InfiniteRange(),
-	})
-	require.NoError(t, err)
-
-	_, err = db.CreateDiscount(tdb, db.Discount{
-		Source:   "my-product:my-cluster:my-tenant",
-		Discount: 0.5,
-		During:   db.InfiniteRange(),
-	})
-	require.NoError(t, err)
-
-	_, err = db.CreateDiscount(tdb, db.Discount{
-		Source:   "my-product:my-cluster:my-tenant:secret-namespace",
-		Discount: 1,
-		During:   db.InfiniteRange(),
-	})
-	require.NoError(t, err)
-
-	q, err := db.CreateQuery(tdb, db.Query{
-		Name:        "test",
-		Description: "test description",
-		Query:       "test",
-		Unit:        "tps",
-		During:      db.InfiniteRange(),
-	})
-	s.prom.queries[q.Query] = fakeQueryResults{
-		"my-product:my-cluster:my-tenant:my-namespace":    fakeQuerySample{Value: 42},
-		"my-product:my-cluster:my-tenant:other-namespace": fakeQuerySample{Value: 42},
-		"my-product:other-cluster:my-tenant:my-namespace": fakeQuerySample{Value: 42},
-		"my-product:my-cluster:other-tenant:my-namespace": fakeQuerySample{Value: 23},
-	}
-	require.NoError(t, err)
-
-	sq, err := db.CreateQuery(tdb, db.Query{
-		ParentID: sql.NullString{
-			String: q.Id,
-			Valid:  true,
-		},
-		Name:        "sub-test",
-		Description: "A sub query of Test",
-		Query:       "sub-test",
-		Unit:        "tps",
-		During:      db.InfiniteRange(),
-	})
-	s.prom.queries[sq.Query] = fakeQueryResults{
-		"my-product:my-cluster:my-tenant:my-namespace":    fakeQuerySample{Value: 4},
-		"my-product:my-cluster:my-tenant:other-namespace": fakeQuerySample{Value: 4},
-		"my-product:other-cluster:my-tenant:my-namespace": fakeQuerySample{Value: 4},
-		"my-product:my-cluster:other-tenant:my-namespace": fakeQuerySample{Value: 2},
-	}
-	require.NoError(t, err)
-
-	runReport(t, tdb, s.prom, q.Name, "2022-02-25", "2022-03-10")
-
-	invoiceEqualsGolden(t, "discounts",
-		generateInvoice(t, tdb, 2022, time.March),
-		*updateGolden)
-}
 
 func runReport(t *testing.T, tdb *sqlx.DB, prom report.PromQuerier, queryName string, from, until string) {
 	start, err := time.Parse(dayLayout, from)
