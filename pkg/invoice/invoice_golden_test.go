@@ -28,11 +28,11 @@ import (
 type InvoiceGoldenSuite struct {
 	dbtest.Suite
 
-	prom fakeQuerrier
+	prom fakeQuerier
 }
 
 func (s *InvoiceGoldenSuite) SetupTest() {
-	s.prom = fakeQuerrier{
+	s.prom = fakeQuerier{
 		queries: map[string]fakeQueryResults{},
 	}
 	t := s.T()
@@ -50,11 +50,11 @@ type fakeQuerySample struct {
 	Value model.SampleValue
 }
 type fakeQueryResults map[string]fakeQuerySample
-type fakeQuerrier struct {
+type fakeQuerier struct {
 	queries map[string]fakeQueryResults
 }
 
-func (q fakeQuerrier) Query(ctx context.Context, query string, ts time.Time) (model.Value, apiv1.Warnings, error) {
+func (q fakeQuerier) Query(ctx context.Context, query string, ts time.Time) (model.Value, apiv1.Warnings, error) {
 	var res model.Vector
 	for k, s := range q.queries[query] {
 		sk, err := sourcekey.Parse(k)
