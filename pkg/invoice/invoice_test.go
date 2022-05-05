@@ -3,13 +3,10 @@ package invoice_test
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
-	"sort"
 	"testing"
 	"time"
 
 	"github.com/jackc/pgtype"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -475,33 +472,4 @@ func factWithDateTime(f db.Fact, dts []db.DateTime) []db.Fact {
 		facts = append(facts, f)
 	}
 	return facts
-}
-
-func invoiceEqual(t *testing.T, expInv, inv invoice.Invoice) bool {
-	sortInvoice(&inv)
-	sortInvoice(&expInv)
-	return assert.Equal(t, expInv, inv)
-}
-
-func sortInvoice(inv *invoice.Invoice) {
-	sort.Slice(inv.Categories, func(i, j int) bool {
-		// This is horrible, but I don't really have any ID or similar to sort on..
-		iraw, _ := json.Marshal(inv.Categories[i])
-		jraw, _ := json.Marshal(inv.Categories[j])
-		return string(iraw) < string(jraw)
-
-	})
-	for catIter := range inv.Categories {
-		sort.Slice(inv.Categories[catIter].Items, func(i, j int) bool {
-			// This is horrible, but I don't really have any ID or similar to sort on..
-			iraw, _ := json.Marshal(inv.Categories[catIter].Items[i])
-			jraw, _ := json.Marshal(inv.Categories[catIter].Items[j])
-			return string(iraw) < string(jraw)
-		})
-		for itemIter := range inv.Categories[catIter].Items {
-			sort.Slice(inv.Categories[catIter].Items[itemIter].SubItems, func(i, j int) bool {
-				return inv.Categories[catIter].Items[itemIter].SubItems[i].Description < inv.Categories[catIter].Items[itemIter].SubItems[j].Description
-			})
-		}
-	}
 }

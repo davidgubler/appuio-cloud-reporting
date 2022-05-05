@@ -45,6 +45,16 @@ test: ensure-prometheus docker-compose-down ping-postgres ## Run full test suite
 	go test ./... -tags integration -coverprofile cover.out -covermode atomic
 	@$(COMPOSE_CMD) $(compose_args) down
 
+.PHONY: gen-golden
+gen-golden:  export ACR_DB_URL = postgres://user:password@localhost:55432/db?sslmode=disable
+gen-golden: COMPOSE_FILE = docker-compose-test.yml
+gen-golden: compose_args = -p reporting-test
+gen-golden: ensure-prometheus docker-compose-down ping-postgres ## Update golden files
+	go run github.com/appuio/appuio-cloud-reporting migrate
+	go run github.com/appuio/appuio-cloud-reporting migrate --seed
+	go test ./pkg/invoice -update
+	@$(COMPOSE_CMD) $(compose_args) down
+
 .PHONY: fmt
 fmt: ## Run 'go fmt' against code
 	go fmt ./...
