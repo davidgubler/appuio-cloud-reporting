@@ -27,11 +27,13 @@ type InvoiceGoldenSuite struct {
 	prom fakeQuerrier
 }
 
-func (s *InvoiceGoldenSuite) SetupSuite() {
-	s.Suite.SetupSuite()
+func (s *InvoiceGoldenSuite) SetupTest() {
 	s.prom = fakeQuerrier{
 		queries: map[string]fakeQueryResults{},
 	}
+	t := s.T()
+	_, err := s.DB().Exec("TRUNCATE queries, date_times, facts, tenants, categories, products, discounts RESTART IDENTITY;")
+	require.NoError(t, err)
 }
 
 func TestInvoiceIntegration(t *testing.T) {
@@ -63,7 +65,7 @@ func (s *InvoiceGoldenSuite) TestInvoiceGolden_Simple() {
 		During:      db.InfiniteRange(),
 	})
 	s.prom.queries[q.Query] = fakeQueryResults{
-		"my-product:my-cluster:my-tenant:my-namespace": fakeQuerySample{Value: 42},
+		"my-product:my-cluster:my-tenant:my-namespace":    fakeQuerySample{Value: 42},
 		"my-product:my-cluster:other-tenant:my-namespace": fakeQuerySample{Value: 23},
 	}
 	require.NoError(t, err)
@@ -79,7 +81,7 @@ func (s *InvoiceGoldenSuite) TestInvoiceGolden_Simple() {
 		During:      db.InfiniteRange(),
 	})
 	s.prom.queries[sq.Query] = fakeQueryResults{
-		"my-product:my-cluster:my-tenant:my-namespace": fakeQuerySample{Value: 4},
+		"my-product:my-cluster:my-tenant:my-namespace":    fakeQuerySample{Value: 4},
 		"my-product:my-cluster:other-tenant:my-namespace": fakeQuerySample{Value: 2},
 	}
 	sq2, err := db.CreateQuery(tdb, db.Query{
@@ -94,7 +96,7 @@ func (s *InvoiceGoldenSuite) TestInvoiceGolden_Simple() {
 		During:      db.InfiniteRange(),
 	})
 	s.prom.queries[sq2.Query] = fakeQueryResults{
-		"my-product:my-cluster:my-tenant:my-namespace": fakeQuerySample{Value: 7},
+		"my-product:my-cluster:my-tenant:my-namespace":    fakeQuerySample{Value: 7},
 		"my-product:my-cluster:other-tenant:my-namespace": fakeQuerySample{Value: 0},
 	}
 
@@ -104,17 +106,119 @@ func (s *InvoiceGoldenSuite) TestInvoiceGolden_Simple() {
 	require.NoError(t, err)
 	defer tx.Rollback()
 
-	start, err := time.Parse(dayLayout, "2022-03-01")
+	start, err := time.Parse(dayLayout, "2022-02-25")
 	require.NoError(t, err)
-	end, err := time.Parse(dayLayout, "2022-04-01")
+	end, err := time.Parse(dayLayout, "2022-03-10")
 	require.NoError(t, err)
 	n, err := report.RunRange(context.Background(), tdb, s.prom, q.Name, start, end)
 	require.NoError(t, err)
 	require.Greater(t, n, 0)
 
-	invRun, err := invoice.Generate(context.Background(), tx, start.Year(), start.Month())
+	invRun, err := invoice.Generate(context.Background(), tx, end.Year(), end.Month())
 	require.NoError(t, err)
 	invoiceEqualsGolden(t, "simple", invRun, *updateGolden)
+}
+
+func (s *InvoiceGoldenSuite) TestInvoiceGolden_Discounts() {
+	t := s.T()
+	tdb := s.DB()
+
+	_, err := db.CreateProduct(tdb, db.Product{
+		Source: "my-product",
+		Amount: 1,
+		During: db.InfiniteRange(),
+	})
+	require.NoError(t, err)
+	_, err = db.CreateDiscount(tdb, db.Discount{
+		Source: "my-product",
+		During: db.InfiniteRange(),
+	})
+	require.NoError(t, err)
+	_, err = db.CreateDiscount(tdb, db.Discount{
+		Source:   "my-product:*:my-tenant",
+		Discount: 0.25,
+		During:   db.InfiniteRange(),
+	})
+	require.NoError(t, err)
+	_, err = db.CreateDiscount(tdb, db.Discount{
+		Source:   "my-product:my-cluster:my-tenant",
+		Discount: 0.5,
+		During:   db.InfiniteRange(),
+	})
+	require.NoError(t, err)
+	_, err = db.CreateDiscount(tdb, db.Discount{
+		Source:   "my-product:my-cluster:my-tenant:secret-namespace",
+		Discount: 1,
+		During:   db.InfiniteRange(),
+	})
+	require.NoError(t, err)
+
+	q, err := db.CreateQuery(tdb, db.Query{
+		Name:        "test",
+		Description: "test description",
+		Query:       "test",
+		Unit:        "tps",
+		During:      db.InfiniteRange(),
+	})
+	s.prom.queries[q.Query] = fakeQueryResults{
+		"my-product:my-cluster:my-tenant:my-namespace":    fakeQuerySample{Value: 42},
+		"my-product:my-cluster:my-tenant:other-namespace": fakeQuerySample{Value: 42},
+		"my-product:other-cluster:my-tenant:my-namespace": fakeQuerySample{Value: 42},
+		"my-product:my-cluster:other-tenant:my-namespace": fakeQuerySample{Value: 23},
+	}
+	require.NoError(t, err)
+	sq, err := db.CreateQuery(tdb, db.Query{
+		ParentID: sql.NullString{
+			String: q.Id,
+			Valid:  true,
+		},
+		Name:        "sub-test",
+		Description: "A sub query of Test",
+		Query:       "sub-test",
+		Unit:        "tps",
+		During:      db.InfiniteRange(),
+	})
+	s.prom.queries[sq.Query] = fakeQueryResults{
+		"my-product:my-cluster:my-tenant:my-namespace":    fakeQuerySample{Value: 4},
+		"my-product:my-cluster:my-tenant:other-namespace": fakeQuerySample{Value: 4},
+		"my-product:other-cluster:my-tenant:my-namespace": fakeQuerySample{Value: 4},
+		"my-product:my-cluster:other-tenant:my-namespace": fakeQuerySample{Value: 2},
+	}
+	sq2, err := db.CreateQuery(tdb, db.Query{
+		ParentID: sql.NullString{
+			String: q.Id,
+			Valid:  true,
+		},
+		Name:        "sub-test2",
+		Description: "An other sub query of Test",
+		Query:       "sub-test2",
+		Unit:        "tps",
+		During:      db.InfiniteRange(),
+	})
+	s.prom.queries[sq2.Query] = fakeQueryResults{
+		"my-product:my-cluster:my-tenant:my-namespace":    fakeQuerySample{Value: 7},
+		"my-product:my-cluster:my-tenant:other-namespace": fakeQuerySample{Value: 7},
+		"my-product:other-cluster:my-tenant:my-namespace": fakeQuerySample{Value: 7},
+		"my-product:my-cluster:other-tenant:my-namespace": fakeQuerySample{Value: 0},
+	}
+
+	require.NoError(t, err)
+
+	tx, err := s.DB().Beginx()
+	require.NoError(t, err)
+	defer tx.Rollback()
+
+	start, err := time.Parse(dayLayout, "2022-02-25")
+	require.NoError(t, err)
+	end, err := time.Parse(dayLayout, "2022-03-10")
+	require.NoError(t, err)
+	n, err := report.RunRange(context.Background(), tdb, s.prom, q.Name, start, end)
+	require.NoError(t, err)
+	require.Greater(t, n, 0)
+
+	invRun, err := invoice.Generate(context.Background(), tx, end.Year(), end.Month())
+	require.NoError(t, err)
+	invoiceEqualsGolden(t, "discounts", invRun, *updateGolden)
 }
 
 func invoiceEqualsGolden(t *testing.T, goldenFile string, actual []invoice.Invoice, update bool) {
