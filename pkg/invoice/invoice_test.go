@@ -294,7 +294,6 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 
 		invoiceEqual(t, invoice.Invoice{
 			Tenant: invoice.Tenant{
-				ID:     s.tricellTenant.Id,
 				Source: s.tricellTenant.Source,
 				Target: s.tricellTenant.Target.String,
 			},
@@ -302,14 +301,12 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 			PeriodEnd:   time.Date(2021, time.December, 31, 0, 0, 0, 0, time.UTC),
 			Categories: []invoice.Category{
 				{
-					ID:     s.uroborosCategory.Id,
 					Source: s.uroborosCategory.Source,
 					Target: s.uroborosCategory.Target.String,
 					Items: []invoice.Item{
 						{
 							Description: s.memoryQuery.Description,
 							ProductRef: invoice.ProductRef{
-								ID:     s.memoryProduct.Id,
 								Source: s.memoryProduct.Source,
 								Target: s.memoryProduct.Target.String,
 							},
@@ -335,7 +332,6 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 						{
 							Description: s.memoryQuery.Description,
 							ProductRef: invoice.ProductRef{
-								ID:     s.memoryProduct.Id,
 								Source: s.memoryProduct.Source,
 								Target: s.memoryProduct.Target.String,
 							},
@@ -379,7 +375,6 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 
 		invoiceEqual(t, invoice.Invoice{
 			Tenant: invoice.Tenant{
-				ID:     s.umbrellaCorpTenant.Id,
 				Source: s.umbrellaCorpTenant.Source,
 				Target: s.umbrellaCorpTenant.Target.String,
 			},
@@ -387,14 +382,12 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 			PeriodEnd:   time.Date(2021, time.December, 31, 0, 0, 0, 0, time.UTC),
 			Categories: []invoice.Category{
 				{
-					ID:     s.p12aCategory.Id,
 					Source: s.p12aCategory.Source,
 					Target: s.p12aCategory.Target.String,
 					Items: []invoice.Item{
 						{
 							Description: s.storageQuery.Description,
 							ProductRef: invoice.ProductRef{
-								ID:     s.storageProduct.Id,
 								Source: s.storageProduct.Source,
 								Target: s.storageProduct.Target.String,
 							},
@@ -410,7 +403,6 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 						{
 							Description: s.memoryQuery.Description,
 							ProductRef: invoice.ProductRef{
-								ID:     s.memoryProduct.Id,
 								Source: s.memoryProduct.Source,
 								Target: s.memoryProduct.Target.String,
 							},
@@ -445,14 +437,12 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 					Total: memP12Total + storP12Total,
 				},
 				{
-					ID:     s.nestElevCtrlCategory.Id,
 					Source: s.nestElevCtrlCategory.Source,
 					Target: s.nestElevCtrlCategory.Target.String,
 					Items: []invoice.Item{
 						{
 							Description: s.memoryQuery.Description,
 							ProductRef: invoice.ProductRef{
-								ID:     s.memoryProduct.Id,
 								Source: s.memoryProduct.Source,
 								Target: s.memoryProduct.Target.String,
 							},
@@ -495,7 +485,11 @@ func invoiceEqual(t *testing.T, expInv, inv invoice.Invoice) bool {
 
 func sortInvoice(inv *invoice.Invoice) {
 	sort.Slice(inv.Categories, func(i, j int) bool {
-		return inv.Categories[i].ID < inv.Categories[j].ID
+		// This is horrible, but I don't really have any ID or similar to sort on..
+		iraw, _ := json.Marshal(inv.Categories[i])
+		jraw, _ := json.Marshal(inv.Categories[j])
+		return string(iraw) < string(jraw)
+
 	})
 	for catIter := range inv.Categories {
 		sort.Slice(inv.Categories[catIter].Items, func(i, j int) bool {

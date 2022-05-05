@@ -25,7 +25,6 @@ type Invoice struct {
 
 // Category represents a category of the invoice i.e. a namespace.
 type Category struct {
-	ID     string
 	Source string
 	Target string
 	Items  []Item
@@ -79,14 +78,12 @@ type SubItem struct {
 
 // Tenant represents a tenant in the invoice.
 type Tenant struct {
-	ID     string
 	Source string
 	Target string
 }
 
 // ProductRef represents a product reference in the invoice.
 type ProductRef struct {
-	ID     string `db:"product_ref_id"`
 	Source string `db:"product_ref_source"`
 	Target string `db:"product_ref_target"`
 }
@@ -134,7 +131,6 @@ func invoiceForTenant(ctx context.Context, tx *sqlx.Tx, tenant db.Tenant, year i
 			return Invoice{}, err
 		}
 		invCategories = append(invCategories, Category{
-			ID:     category.Id,
 			Source: category.Source,
 			Target: category.Target.String,
 			Items:  items,
@@ -143,7 +139,7 @@ func invoiceForTenant(ctx context.Context, tx *sqlx.Tx, tenant db.Tenant, year i
 	}
 
 	return Invoice{
-		Tenant:      Tenant{ID: tenant.Id, Source: tenant.Source, Target: tenant.Target.String},
+		Tenant:      Tenant{Source: tenant.Source, Target: tenant.Target.String},
 		PeriodStart: time.Date(year, month, 1, 0, 0, 0, 0, time.UTC),
 		PeriodEnd:   time.Date(year, month, 1, 0, 0, 0, 0, time.UTC).AddDate(0, 1, -1),
 		Categories:  invCategories,
@@ -161,6 +157,8 @@ type rawItem struct {
 	ParentQueryID sql.NullString `db:"parent_query_id"`
 	// DiscountID is the id of the corresponding discount
 	DiscountID string `db:"discount_id"`
+	// ProductID is the id of the corresponding product entry
+	ProductID string `db:"product_ref_id"`
 }
 
 func itemsForCategory(ctx context.Context, tx *sqlx.Tx, tenant db.Tenant, category db.Category, year int, month time.Month) ([]Item, error) {
@@ -199,13 +197,13 @@ func buildItemHierarchy(items []rawItem) []Item {
 	for _, item := range items {
 		if !item.ParentQueryID.Valid {
 			// These three IDs uniquely identify the line item
-			itemID := fmt.Sprintf("%s:%s:%s", item.QueryID, item.ProductRef.ID, item.DiscountID)
+			itemID := fmt.Sprintf("%s:%s:%s", item.QueryID, item.ProductID, item.DiscountID)
 			mainItems[itemID] = item.Item
 		}
 	}
 	for _, item := range items {
 		if item.ParentQueryID.Valid {
-			pqid := fmt.Sprintf("%s:%s:%s", item.ParentQueryID.String, item.ProductRef.ID, item.DiscountID)
+			pqid := fmt.Sprintf("%s:%s:%s", item.ParentQueryID.String, item.ProductID, item.DiscountID)
 			parent, ok := mainItems[pqid]
 			if ok {
 				parent.SubItems = append(parent.SubItems, SubItem{
