@@ -2,7 +2,6 @@ package db
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 
 	_ "embed"
@@ -41,7 +40,7 @@ var DefaultQueries = []Query{
 			},
 			{
 				Name:        "appuio_cloud_memory_subquery_cpu_request",
-				Description: "CPU requests exceeding the fair use limit",
+				Description: "CPU requests exceeding the fair use limit, converted to the memory request equivalent",
 				Query:       appuioCloudMemorySubQueryCPU,
 				Unit:        "MiB",
 			},
@@ -63,6 +62,10 @@ var DefaultQueries = []Query{
 // Seed seeds the database with "starter" data.
 // Is idempotent and thus can be executed multiple times in one database.
 func Seed(db *sql.DB) error {
+	return SeedQueries(db, DefaultQueries)
+}
+
+func SeedQueries(db *sql.DB, queries []Query) error {
 	dbx := NewDBx(db)
 	tx, err := dbx.Beginx()
 	if err != nil {
@@ -70,29 +73,29 @@ func Seed(db *sql.DB) error {
 	}
 	defer tx.Rollback()
 
-	if err := createDefaultQueries(tx); err != nil {
+	if err := createQueries(tx, queries); err != nil {
 		return err
 	}
 
 	return tx.Commit()
 }
 
-func createDefaultQueries(tx *sqlx.Tx) error {
-	for _, q := range DefaultQueries {
-		id, exists, err := queryExistsByName(tx, q.Name)
+func createQueries(tx *sqlx.Tx, queries []Query) error {
+	for _, q := range queries {
+		exists, err := queryExistsByName(tx, q.Name)
 		if err != nil {
 			return fmt.Errorf("error checking if query exists: %w", err)
 		}
 		if exists {
-			q.Id = id
 			fmt.Printf("Found query with name '%s'. Skip creating default query.\n", q.Name)
-		} else {
-			err = GetNamed(tx, &q.Id,
-				"INSERT INTO queries (name,description,query,unit,during) VALUES (:name,:description,:query,:unit,'[-infinity,infinity)') RETURNING id",
-				q)
-			if err != nil {
-				return fmt.Errorf("error creating default query: %w", err)
-			}
+			continue
+		}
+
+		err = GetNamed(tx, &q.Id,
+			"INSERT INTO queries (name,description,query,unit,during) VALUES (:name,:description,:query,:unit,'[-infinity,infinity)') RETURNING id",
+			q)
+		if err != nil {
+			return fmt.Errorf("error creating default query: %w", err)
 		}
 
 		for _, subQuery := range q.subQueries {
@@ -100,7 +103,7 @@ func createDefaultQueries(tx *sqlx.Tx) error {
 				String: q.Id,
 				Valid:  true,
 			}
-			_, exists, err := queryExistsByName(tx, subQuery.Name)
+			exists, err := queryExistsByName(tx, subQuery.Name)
 			if err != nil {
 				return fmt.Errorf("error checking if sub-query exists: %w", err)
 			}
@@ -117,14 +120,8 @@ func createDefaultQueries(tx *sqlx.Tx) error {
 	return nil
 }
 
-func queryExistsByName(tx *sqlx.Tx, name string) (string, bool, error) {
-	var id string
-	err := tx.Get(&id, "SELECT id FROM queries WHERE name = $1", name)
-	if errors.Is(err, sql.ErrNoRows) {
-		return "", false, nil
-	}
-	if err != nil {
-		return "", false, err
-	}
-	return id, true, err
+func queryExistsByName(tx *sqlx.Tx, name string) (bool, error) {
+	var exists bool
+	err := tx.Get(&exists, "SELECT EXISTS(SELECT 1 FROM queries WHERE name = $1)", name)
+	return exists, err
 }

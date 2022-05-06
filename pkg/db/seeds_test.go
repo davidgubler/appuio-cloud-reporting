@@ -24,23 +24,45 @@ func (s *SeedsTestSuite) TestSeedDefaultQueries() {
 
 	expQueryNum := 5
 
-	count := "SELECT ((SELECT COUNT(*) FROM queries) = $1)"
-	requireQueryTrue(t, d, count, 0)
+	count := "SELECT COUNT(*) FROM queries"
+	requireQueryEqual(t, d, 0, count)
+
+	require.NoError(t, db.SeedQueries(d.DB, []db.Query{
+		{
+			Name:        "appuio_cloud_memory",
+			Description: "Memory usage (maximum of requested and used memory) aggregated by namespace",
+			Unit:        "MiB",
+		},
+	}))
+	t.Log(t, count)
+	requireQueryEqual(t, d, 1, count)
+
+	// Some appuio_cloud_memory exists so don't create sub queries
 	err = db.Seed(d.DB)
 	require.NoError(t, err)
-	requireQueryTrue(t, d, count, expQueryNum)
+	requireQueryEqual(t, d, expQueryNum-2, count)
+
+	// Drop queries and check we create sub queries
+	_, err = d.DB.Exec("DELETE FROM queries;")
+	require.NoError(t, err)
 	err = db.Seed(d.DB)
 	require.NoError(t, err)
-	requireQueryTrue(t, d, count, expQueryNum)
+	requireQueryEqual(t, d, expQueryNum, count)
+	err = db.Seed(d.DB)
+	require.NoError(t, err)
+	requireQueryEqual(t, d, expQueryNum, count)
+}
+
+func requireQueryEqual[T any](t *testing.T, q sqlx.Queryer, expected T, query string, args ...interface{}) {
+	t.Helper()
+	var res T
+	require.NoError(t, sqlx.Get(q, &res, query, args...))
+	require.Equal(t, expected, res)
 }
 
 func requireQueryTrue(t *testing.T, q sqlx.Queryer, query string, args ...interface{}) {
 	t.Helper()
-
-	var result bool
-	err := sqlx.Get(q, &result, query, args...)
-	require.NoError(t, err)
-	require.True(t, result)
+	requireQueryEqual(t, q, true, query, args...)
 }
 
 func TestSeeds(t *testing.T) {
