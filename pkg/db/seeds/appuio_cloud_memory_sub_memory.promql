@@ -10,9 +10,7 @@ sum_over_time(
         # Add the base product identifier.
         label_replace(
           clamp_min(
-            (
-              sum by(cluster_id, namespace) (kube_pod_container_resource_requests{resource="memory"})
-            )
+            sum by(cluster_id, namespace) (kube_pod_container_resource_requests{resource="memory"})
             *
             # Join namespace label `label_appuio_io_organization` as `tenant_id`.
             on(cluster_id, namespace)

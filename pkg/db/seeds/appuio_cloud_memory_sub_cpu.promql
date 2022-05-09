@@ -11,10 +11,10 @@ sum_over_time(
         label_replace(
           clamp_min(
             (
-                sum by(cluster_id, namespace) (
+              sum by(cluster_id, namespace) (
                 # Get the CPU requests
                 kube_pod_container_resource_requests{resource="cpu"}
-                # Convert them to their memory equvalent by multiplying them by the memory to CPU ratio
+                # Convert them to their memory equivalent by multiplying them by the memory to CPU ratio
                 # Build that ratio from static values
                 * on(cluster_id) group_left()(
                   # Build a time series for Cloudscale LPG 2 (4096 MiB/core)
