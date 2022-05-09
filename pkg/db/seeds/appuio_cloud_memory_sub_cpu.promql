@@ -1,0 +1,61 @@
+# Sum values over one hour.
+sum_over_time(
+  # Average over a one-minute time frame.
+  # NOTE: This is a sliding window. Results vary based on the queries' execution time.
+  avg_over_time(
+    # Add the final product label by joining the base product with the cluster ID, the tenant and the namespace.
+    label_join(
+      # Add the category label by joining the cluster ID and the namespace.
+      label_join(
+        # Add the base product identifier.
+        label_replace(
+          clamp_min(
+            (
+              sum by(cluster_id, namespace) (
+                # Get the CPU requests
+                kube_pod_container_resource_requests{resource="cpu"}
+                # Convert them to their memory equivalent by multiplying them by the memory to CPU ratio
+                # Build that ratio from static values
+                * on(cluster_id) group_left()(
+                  # Build a time series for Cloudscale LPG 2 (4096 MiB/core)
+                  label_replace(vector(4294967296), "cluster_id", "c-appuio-cloudscale-lpg-2", "", "")
+                  # Build a time series for Exoscale GVA-2 0 (5086 MiB/core)
+                  or label_replace(vector(5333057536), "cluster_id", "c-appuio-exoscale-ch-gva-2-0", "", "")
+                )
+              )
+              - sum by(cluster_id, namespace) (kube_pod_container_resource_requests{resource="memory"})
+            )
+            *
+            # Join namespace label `label_appuio_io_organization` as `tenant_id`.
+            on(cluster_id, namespace)
+            group_left(tenant_id)
+            label_replace(
+              kube_namespace_labels{label_appuio_io_organization=~".+"},
+              "tenant_id",
+              "$1",
+              "label_appuio_io_organization", "(.*)"
+            ),
+            # At least return 0
+            0
+          ),
+          "product",
+          "appuio_cloud_memory",
+          "product",
+          ".*"
+        ),
+        "category",
+        ":",
+        "cluster_id",
+        "namespace"
+      ),
+      "product",
+      ":",
+      "product",
+      "cluster_id",
+      "tenant_id",
+      "namespace"
+    )[45s:15s]
+  )[59m:1m]
+)
+# Convert to MiB
+/ 1024 / 1024
