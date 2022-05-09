@@ -13,6 +13,7 @@
 				"Items": [
 					{
 						"Description": "test description",
+						"QueryName": "test",
 						"Source": "my-product",
 						"Target": "",
 						"Quantity": 1008,
@@ -26,6 +27,7 @@
 						"SubItems": [
 							{
 								"Description": "A sub query of Test",
+								"QueryName": "sub-test",
 								"Quantity": 96,
 								"QuantityMin": 4,
 								"QuantityAvg": 4,
@@ -36,6 +38,7 @@
 					},
 					{
 						"Description": "test description",
+						"QueryName": "test",
 						"Source": "my-product",
 						"Target": "",
 						"Quantity": 2016,
@@ -49,6 +52,7 @@
 						"SubItems": [
 							{
 								"Description": "A sub query of Test",
+								"QueryName": "sub-test",
 								"Quantity": 192,
 								"QuantityMin": 4,
 								"QuantityAvg": 4,
@@ -59,6 +63,7 @@
 					},
 					{
 						"Description": "test description",
+						"QueryName": "test",
 						"Source": "my-product",
 						"Target": "",
 						"Quantity": 6048,
@@ -72,6 +77,7 @@
 						"SubItems": [
 							{
 								"Description": "A sub query of Test",
+								"QueryName": "sub-test",
 								"Quantity": 576,
 								"QuantityMin": 4,
 								"QuantityAvg": 4,
@@ -89,6 +95,7 @@
 				"Items": [
 					{
 						"Description": "test description",
+						"QueryName": "test",
 						"Source": "my-product",
 						"Target": "",
 						"Quantity": 1008,
@@ -102,6 +109,7 @@
 						"SubItems": [
 							{
 								"Description": "A sub query of Test",
+								"QueryName": "sub-test",
 								"Quantity": 96,
 								"QuantityMin": 4,
 								"QuantityAvg": 4,
@@ -112,6 +120,7 @@
 					},
 					{
 						"Description": "test description",
+						"QueryName": "test",
 						"Source": "my-product",
 						"Target": "",
 						"Quantity": 2016,
@@ -125,6 +134,7 @@
 						"SubItems": [
 							{
 								"Description": "A sub query of Test",
+								"QueryName": "sub-test",
 								"Quantity": 192,
 								"QuantityMin": 4,
 								"QuantityAvg": 4,
@@ -135,6 +145,7 @@
 					},
 					{
 						"Description": "test description",
+						"QueryName": "test",
 						"Source": "my-product",
 						"Target": "",
 						"Quantity": 6048,
@@ -148,6 +159,7 @@
 						"SubItems": [
 							{
 								"Description": "A sub query of Test",
+								"QueryName": "sub-test",
 								"Quantity": 576,
 								"QuantityMin": 4,
 								"QuantityAvg": 4,
@@ -165,6 +177,7 @@
 				"Items": [
 					{
 						"Description": "test description",
+						"QueryName": "test",
 						"Source": "my-product",
 						"Target": "",
 						"Quantity": 1008,
@@ -178,6 +191,7 @@
 						"SubItems": [
 							{
 								"Description": "A sub query of Test",
+								"QueryName": "sub-test",
 								"Quantity": 96,
 								"QuantityMin": 4,
 								"QuantityAvg": 4,
@@ -188,6 +202,7 @@
 					},
 					{
 						"Description": "test description",
+						"QueryName": "test",
 						"Source": "my-product",
 						"Target": "",
 						"Quantity": 2016,
@@ -201,6 +216,7 @@
 						"SubItems": [
 							{
 								"Description": "A sub query of Test",
+								"QueryName": "sub-test",
 								"Quantity": 192,
 								"QuantityMin": 4,
 								"QuantityAvg": 4,
@@ -211,6 +227,7 @@
 					},
 					{
 						"Description": "test description",
+						"QueryName": "test",
 						"Source": "my-product",
 						"Target": "",
 						"Quantity": 6048,
@@ -224,6 +241,7 @@
 						"SubItems": [
 							{
 								"Description": "A sub query of Test",
+								"QueryName": "sub-test",
 								"Quantity": 576,
 								"QuantityMin": 4,
 								"QuantityAvg": 4,
@@ -252,6 +270,7 @@
 				"Items": [
 					{
 						"Description": "test description",
+						"QueryName": "test",
 						"Source": "my-product",
 						"Target": "",
 						"Quantity": 1104,
@@ -265,6 +284,7 @@
 						"SubItems": [
 							{
 								"Description": "A sub query of Test",
+								"QueryName": "sub-test",
 								"Quantity": 96,
 								"QuantityMin": 2,
 								"QuantityAvg": 2,
@@ -275,6 +295,7 @@
 					},
 					{
 						"Description": "test description",
+						"QueryName": "test",
 						"Source": "my-product",
 						"Target": "",
 						"Quantity": 3312,
@@ -288,6 +309,7 @@
 						"SubItems": [
 							{
 								"Description": "A sub query of Test",
+								"QueryName": "sub-test",
 								"Quantity": 288,
 								"QuantityMin": 2,
 								"QuantityAvg": 2,
@@ -298,6 +320,7 @@
 					},
 					{
 						"Description": "test description",
+						"QueryName": "test",
 						"Source": "my-product",
 						"Target": "",
 						"Quantity": 552,
@@ -311,6 +334,7 @@
 						"SubItems": [
 							{
 								"Description": "A sub query of Test",
+								"QueryName": "sub-test",
 								"Quantity": 48,
 								"QuantityMin": 2,
 								"QuantityAvg": 2,
