@@ -13,6 +13,7 @@
 				"Items": [
 					{
 						"Description": "test description",
+						"QueryName": "test",
 						"Source": "my-product",
 						"Target": "",
 						"Quantity": 9072,
@@ -26,6 +27,7 @@
 						"SubItems": [
 							{
 								"Description": "A sub query of Test",
+								"QueryName": "sub-test",
 								"Quantity": 864,
 								"QuantityMin": 4,
 								"QuantityAvg": 4,
@@ -34,6 +36,7 @@
 							},
 							{
 								"Description": "An other sub query of Test",
+								"QueryName": "sub-test2",
 								"Quantity": 1512,
 								"QuantityMin": 7,
 								"QuantityAvg": 7,
@@ -62,6 +65,7 @@
 				"Items": [
 					{
 						"Description": "test description",
+						"QueryName": "test",
 						"Source": "my-product",
 						"Target": "",
 						"Quantity": 4968,
@@ -75,6 +79,7 @@
 						"SubItems": [
 							{
 								"Description": "A sub query of Test",
+								"QueryName": "sub-test",
 								"Quantity": 432,
 								"QuantityMin": 2,
 								"QuantityAvg": 2,
@@ -83,6 +88,7 @@
 							},
 							{
 								"Description": "An other sub query of Test",
+								"QueryName": "sub-test2",
 								"Quantity": 0,
 								"QuantityMin": 0,
 								"QuantityAvg": 0,
