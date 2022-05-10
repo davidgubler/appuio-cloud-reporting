@@ -59,7 +59,8 @@ type Item struct {
 	// per unit * discount)
 	Total float64
 	// SubItems are entries created by the subqueries of the main invoice item.
-	SubItems []SubItem
+	// The keys are the QueryNames of the sub items.
+	SubItems map[string]SubItem
 }
 
 // SubItem reflects additional information created by a subquery of the main invoice item
@@ -202,6 +203,7 @@ func buildItemHierarchy(items []rawItem) []Item {
 		if !item.ParentQueryID.Valid {
 			// These three IDs uniquely identify the line item
 			itemID := fmt.Sprintf("%s:%s:%s", item.QueryID, item.ProductID, item.DiscountID)
+			item.Item.SubItems = map[string]SubItem{}
 			mainItems[itemID] = item.Item
 		}
 	}
@@ -210,7 +212,7 @@ func buildItemHierarchy(items []rawItem) []Item {
 			pqid := fmt.Sprintf("%s:%s:%s", item.ParentQueryID.String, item.ProductID, item.DiscountID)
 			parent, ok := mainItems[pqid]
 			if ok {
-				parent.SubItems = append(parent.SubItems, SubItem{
+				parent.SubItems[item.QueryName] = SubItem{
 					Description: item.Description,
 					QueryName:   item.QueryName,
 					Quantity:    item.Quantity,
@@ -218,7 +220,7 @@ func buildItemHierarchy(items []rawItem) []Item {
 					QuantityAvg: item.QuantityAvg,
 					QuantityMax: item.QuantityAvg,
 					Unit:        item.Unit,
-				})
+				}
 				mainItems[pqid] = parent
 			}
 		}

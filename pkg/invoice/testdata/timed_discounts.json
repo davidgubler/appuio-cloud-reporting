@@ -24,8 +24,8 @@
 						"PricePerUnit": 1,
 						"Discount": 0.5,
 						"Total": 504,
-						"SubItems": [
-							{
+						"SubItems": {
+							"sub-test": {
 								"Description": "A sub query of Test",
 								"QueryName": "sub-test",
 								"Quantity": 96,
@@ -34,7 +34,7 @@
 								"QuantityMax": 4,
 								"Unit": "tps"
 							}
-						]
+						}
 					},
 					{
 						"Description": "test description",
@@ -49,8 +49,8 @@
 						"PricePerUnit": 1,
 						"Discount": 0.25,
 						"Total": 1512,
-						"SubItems": [
-							{
+						"SubItems": {
+							"sub-test": {
 								"Description": "A sub query of Test",
 								"QueryName": "sub-test",
 								"Quantity": 192,
@@ -59,7 +59,7 @@
 								"QuantityMax": 4,
 								"Unit": "tps"
 							}
-						]
+						}
 					},
 					{
 						"Description": "test description",
@@ -74,8 +74,8 @@
 						"PricePerUnit": 1,
 						"Discount": 0,
 						"Total": 6048,
-						"SubItems": [
-							{
+						"SubItems": {
+							"sub-test": {
 								"Description": "A sub query of Test",
 								"QueryName": "sub-test",
 								"Quantity": 576,
@@ -84,7 +84,7 @@
 								"QuantityMax": 4,
 								"Unit": "tps"
 							}
-						]
+						}
 					}
 				],
 				"Total": 8064
@@ -106,8 +106,8 @@
 						"PricePerUnit": 1,
 						"Discount": 0.5,
 						"Total": 504,
-						"SubItems": [
-							{
+						"SubItems": {
+							"sub-test": {
 								"Description": "A sub query of Test",
 								"QueryName": "sub-test",
 								"Quantity": 96,
@@ -116,7 +116,7 @@
 								"QuantityMax": 4,
 								"Unit": "tps"
 							}
-						]
+						}
 					},
 					{
 						"Description": "test description",
@@ -131,8 +131,8 @@
 						"PricePerUnit": 1,
 						"Discount": 0.25,
 						"Total": 1512,
-						"SubItems": [
-							{
+						"SubItems": {
+							"sub-test": {
 								"Description": "A sub query of Test",
 								"QueryName": "sub-test",
 								"Quantity": 192,
@@ -141,7 +141,7 @@
 								"QuantityMax": 4,
 								"Unit": "tps"
 							}
-						]
+						}
 					},
 					{
 						"Description": "test description",
@@ -156,8 +156,8 @@
 						"PricePerUnit": 1,
 						"Discount": 0,
 						"Total": 6048,
-						"SubItems": [
-							{
+						"SubItems": {
+							"sub-test": {
 								"Description": "A sub query of Test",
 								"QueryName": "sub-test",
 								"Quantity": 576,
@@ -166,7 +166,7 @@
 								"QuantityMax": 4,
 								"Unit": "tps"
 							}
-						]
+						}
 					}
 				],
 				"Total": 8064
@@ -188,8 +188,8 @@
 						"PricePerUnit": 1,
 						"Discount": 0.5,
 						"Total": 504,
-						"SubItems": [
-							{
+						"SubItems": {
+							"sub-test": {
 								"Description": "A sub query of Test",
 								"QueryName": "sub-test",
 								"Quantity": 96,
@@ -198,7 +198,7 @@
 								"QuantityMax": 4,
 								"Unit": "tps"
 							}
-						]
+						}
 					},
 					{
 						"Description": "test description",
@@ -213,8 +213,8 @@
 						"PricePerUnit": 1,
 						"Discount": 0.25,
 						"Total": 1512,
-						"SubItems": [
-							{
+						"SubItems": {
+							"sub-test": {
 								"Description": "A sub query of Test",
 								"QueryName": "sub-test",
 								"Quantity": 192,
@@ -223,7 +223,7 @@
 								"QuantityMax": 4,
 								"Unit": "tps"
 							}
-						]
+						}
 					},
 					{
 						"Description": "test description",
@@ -238,8 +238,8 @@
 						"PricePerUnit": 1,
 						"Discount": 0,
 						"Total": 6048,
-						"SubItems": [
-							{
+						"SubItems": {
+							"sub-test": {
 								"Description": "A sub query of Test",
 								"QueryName": "sub-test",
 								"Quantity": 576,
@@ -248,7 +248,7 @@
 								"QuantityMax": 4,
 								"Unit": "tps"
 							}
-						]
+						}
 					}
 				],
 				"Total": 8064
@@ -281,8 +281,8 @@
 						"PricePerUnit": 1,
 						"Discount": 0.25,
 						"Total": 828,
-						"SubItems": [
-							{
+						"SubItems": {
+							"sub-test": {
 								"Description": "A sub query of Test",
 								"QueryName": "sub-test",
 								"Quantity": 96,
@@ -291,7 +291,7 @@
 								"QuantityMax": 2,
 								"Unit": "tps"
 							}
-						]
+						}
 					},
 					{
 						"Description": "test description",
@@ -306,8 +306,8 @@
 						"PricePerUnit": 1,
 						"Discount": 0,
 						"Total": 3312,
-						"SubItems": [
-							{
+						"SubItems": {
+							"sub-test": {
 								"Description": "A sub query of Test",
 								"QueryName": "sub-test",
 								"Quantity": 288,
@@ -316,7 +316,7 @@
 								"QuantityMax": 2,
 								"Unit": "tps"
 							}
-						]
+						}
 					},
 					{
 						"Description": "test description",
@@ -331,8 +331,8 @@
 						"PricePerUnit": 1,
 						"Discount": 0.5,
 						"Total": 276,
-						"SubItems": [
-							{
+						"SubItems": {
+							"sub-test": {
 								"Description": "A sub query of Test",
 								"QueryName": "sub-test",
 								"Quantity": 48,
@@ -341,7 +341,7 @@
 								"QuantityMax": 2,
 								"Unit": "tps"
 							}
-						]
+						}
 					}
 				],
 				"Total": 4416

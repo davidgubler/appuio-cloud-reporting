@@ -316,8 +316,8 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 							PricePerUnit: s.memoryProduct.Amount,
 							Discount:     s.memoryDiscount.Discount,
 							Total:        quantity * s.memoryProduct.Amount,
-							SubItems: []invoice.SubItem{
-								{
+							SubItems: map[string]invoice.SubItem{
+								s.memorySubQuery.Name: {
 									Description: s.memorySubQuery.Description,
 									QueryName:   s.memorySubQuery.Name,
 									Quantity:    subMemQuantity,
@@ -343,8 +343,8 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 							PricePerUnit: s.memoryProduct.Amount,
 							Discount:     s.tricellMemoryDiscount.Discount,
 							Total:        quantity * s.memoryProduct.Amount * 0.5,
-							SubItems: []invoice.SubItem{
-								{
+							SubItems: map[string]invoice.SubItem{
+								s.memorySubQuery.Name: {
 									Description: s.memorySubQuery.Description,
 									QueryName:   s.memorySubQuery.Name,
 									Quantity:    subMemQuantity,
@@ -401,6 +401,7 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 							PricePerUnit: s.storageProduct.Amount,
 							Discount:     s.storageDiscount.Discount,
 							Total:        storP12Total,
+							SubItems:     map[string]invoice.SubItem{},
 						},
 						{
 							Description: s.memoryQuery.Description,
@@ -417,8 +418,8 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 							PricePerUnit: s.memoryProduct.Amount,
 							Discount:     s.memoryDiscount.Discount,
 							Total:        memP12Total,
-							SubItems: []invoice.SubItem{
-								{
+							SubItems: map[string]invoice.SubItem{
+								s.memorySubQuery.Name: {
 									Description: s.memorySubQuery.Description,
 									QueryName:   s.memorySubQuery.Name,
 									Quantity:    subMemP12Quantity * stampsInTimerange,
@@ -427,7 +428,7 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 									QuantityMax: subMemP12Quantity,
 									Unit:        s.memorySubQuery.Unit,
 								},
-								{
+								s.memoryOtherSubQuery.Name: {
 									Description: s.memoryOtherSubQuery.Description,
 									QueryName:   s.memoryOtherSubQuery.Name,
 									Quantity:    otherSubMemP12Quantity * stampsInTimerange,
@@ -460,6 +461,7 @@ func (s *InvoiceSuite) TestInvoice_Generate() {
 							PricePerUnit: s.memoryProduct.Amount,
 							Discount:     s.memoryDiscount.Discount,
 							Total:        memNestTotal,
+							SubItems:     map[string]invoice.SubItem{},
 						},
 					},
 					Total: memNestTotal,
