@@ -50,10 +50,5 @@ func sortInvoice(inv *invoice.Invoice) {
 			jraw, _ := json.Marshal(inv.Categories[catIter].Items[j])
 			return string(iraw) < string(jraw)
 		})
-		for itemIter := range inv.Categories[catIter].Items {
-			sort.Slice(inv.Categories[catIter].Items[itemIter].SubItems, func(i, j int) bool {
-				return inv.Categories[catIter].Items[itemIter].SubItems[i].Description < inv.Categories[catIter].Items[itemIter].SubItems[j].Description
-			})
-		}
 	}
 }
