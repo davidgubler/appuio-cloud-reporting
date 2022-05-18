@@ -17,8 +17,7 @@ sum_over_time(
               )
               - sum by(cluster_id, namespace) (container_memory_working_set_bytes{image!=""})
             ),
-            # At least return 128MiB
-            128 * 1024 * 1024
+            0
           )
           *
           # Join namespace label `label_appuio_io_organization` as `tenant_id`.
