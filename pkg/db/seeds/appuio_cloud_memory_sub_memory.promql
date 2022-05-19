@@ -10,19 +10,24 @@ sum_over_time(
         # Add the base product identifier.
         label_replace(
           clamp_min(
-            sum by(cluster_id, namespace) (kube_pod_container_resource_requests{resource="memory"} * on(cluster_id,pod,namespace) group_left kube_pod_status_phase{phase="Running"})
-            *
-            # Join namespace label `label_appuio_io_organization` as `tenant_id`.
-            on(cluster_id, namespace)
-            group_left(tenant_id)
-            label_replace(
-              kube_namespace_labels{label_appuio_io_organization=~".+"},
-              "tenant_id",
-              "$1",
-              "label_appuio_io_organization", "(.*)"
+            (
+              clamp_min(
+                sum by(cluster_id, namespace) (kube_pod_container_resource_requests{resource="memory"} * on(cluster_id,pod,namespace) group_left kube_pod_status_phase{phase="Running"}),
+                128 * 1024 * 1024
+              )
+              - sum by(cluster_id, namespace) (container_memory_working_set_bytes{image!=""})
             ),
-            # At least return 128MiB
-            128 * 1024 * 1024
+            0
+          )
+          *
+          # Join namespace label `label_appuio_io_organization` as `tenant_id`.
+          on(cluster_id, namespace)
+          group_left(tenant_id)
+          label_replace(
+            kube_namespace_labels{label_appuio_io_organization=~".+"},
+            "tenant_id",
+            "$1",
+            "label_appuio_io_organization", "(.*)"
           ),
           "product",
           "appuio_cloud_memory",
