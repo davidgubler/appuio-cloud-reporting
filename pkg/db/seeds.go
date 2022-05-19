@@ -34,7 +34,7 @@ var DefaultQueries = []Query{
 		subQueries: []Query{
 			{
 				Name:        "appuio_cloud_memory_subquery_memory_request",
-				Description: "Memory request exceeding the actual request",
+				Description: "Memory request exceeding the actual usage",
 				Query:       appuioCloudMemorySubQueryMemory,
 				Unit:        "MiB",
 			},
